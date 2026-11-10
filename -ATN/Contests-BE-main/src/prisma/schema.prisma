@@ -1,0 +1,508 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator dbml {
+  provider = "prisma-dbml-generator"
+  output   = "./dbml"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  Admin
+  Judge
+  Student
+}
+
+enum QuestionType {
+  multiple_choice
+  essay
+  image
+  audio
+  video
+}
+
+enum Difficulty {
+  Alpha
+  Beta
+  Rc
+  Gold
+}
+
+enum ContestStatus {
+  upcoming
+  ongoing
+  finished
+}
+
+enum ContestantStatus {
+  compete
+  eliminate
+  advanced
+}
+
+enum ContestantMatchStatus {
+  not_started
+  in_progress
+  confirmed1
+  confirmed2
+  eliminated
+  rescued
+  banned
+  completed
+}
+
+enum ContestMedia {
+  logo
+  background
+  images
+}
+
+enum RescueType {
+  resurrected
+  lifelineUsed
+}
+
+enum RescueStatus {
+  notUsed
+  used
+  passed
+  notEligible    
+  proposed
+}
+
+enum AwardType {
+  firstPrize
+  secondPrize
+  thirdPrize
+}
+
+enum ControlKey {
+  wingold
+  qrcode
+  background
+  question
+  questionIntro
+  questionInfo
+  answer
+  matchDiagram
+  explanation
+  firstPrize
+  secondPrize
+  thirdPrize
+  fourthPrize
+  impressiveVideo
+  excellentVideo
+  allPrize
+  topWin
+  listEliminated
+  listRescued
+  video
+  audio
+  image
+  chart
+  statistic 
+  top20Winner
+  chartContestant
+}
+
+enum ControlValue {
+  start
+  pause
+  reset
+  Eliminated
+  Rescued 
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique @db.Char(255)
+  password  String   @db.Char(255)
+  email     String   @unique @db.VarChar(255)
+  role      Role     
+  isActive  Boolean  @default(true)
+  token     String?  @db.Text
+  otpCode            String?   @db.VarChar(6)    
+  otpExpiredAt       DateTime?  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  groups    Group[]
+  refreshToken RefreshToken[]
+  student   Student?
+  @@map("users")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int     
+  user      User     @relation(fields:[userId],references:[id] , onDelete:Cascade, onUpdate:Cascade)
+  refreshToken   String  @db.Text 
+  createdAt DateTime @default(now())
+  expiredAt DateTime 
+  
+  @@map("refreshtokens")
+}
+
+model School {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  email     String   @unique @db.VarChar(255)
+  phone     String?  @unique @db.VarChar(10)
+  address   String?  @db.VarChar(255)
+  isActive  Boolean  @default(true)
+  classes   Class[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("schools")
+}
+
+
+  model Class {
+    id        Int       @id @default(autoincrement())
+    name      String    @db.VarChar(255)
+    schoolId  Int     
+    school    School    @relation(fields: [schoolId], references: [id],onUpdate:Restrict, onDelete:Restrict)
+    isActive  Boolean   @default(true) 
+    students  Student[]
+    videos    ClassVideo[]
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("classes")
+  }
+
+model Student {
+  id           Int      @id @default(autoincrement())
+  fullName     String   @db.VarChar(255) @map("full_name")
+  studentCode  String?  @db.VarChar(12) @map("student_code")
+  avatar      String?  @db.VarChar(255)
+  bio         String?  @db.Text
+  classId      Int     
+  class        Class    @relation(fields: [classId], references: [id],onUpdate:Restrict, onDelete:Restrict)
+  userId       Int?      @unique
+  user         User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  isActive     Boolean  @default(true) 
+  contestants  Contestant[]
+  match        Match[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("students")
+}
+
+model About {
+  id             Int      @id @default(autoincrement())
+  schoolName     String   @db.VarChar(255)
+  website        String?  @db.VarChar(255)
+  departmentName String?  @db.VarChar(255) 
+  email         String?  @db.VarChar(255)
+  fanpage       String?  @db.VarChar(255)
+  mapEmbedCode  String?  @db.Text
+  logo          Json?    // Array of logo media objects
+  banner        Json?    // Array of banner media objects
+  isActive      Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("about")
+}
+
+model QuestionTopic {
+  id        Int        @id @default(autoincrement())
+  name      String     @db.VarChar(255)
+  isActive  Boolean    @default(true) 
+  questions Question[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("question_Topics")
+}
+
+model QuestionPackage {
+  id               Int              @id @default(autoincrement())
+  name             String           @db.VarChar(255)
+  isActive         Boolean          @default(true) 
+  questionDetails  QuestionDetail[]
+  matches          Match[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("question_Packages")
+}
+
+model Question {
+  id             Int             @id @default(autoincrement())
+  intro          String?         @db.VarChar(255)
+  defaultTime    Int                     
+  questionType   QuestionType   
+  content        String          @db.Text
+  questionMedia  Json?         
+  options        Json?           
+  correctAnswer  String          @db.Text
+  mediaAnswer    Json?          
+  score          Int             @default(1)
+  difficulty     Difficulty
+  explanation    String?         @db.Text
+  questionTopicId Int         
+  questionTopic  QuestionTopic   @relation(fields: [questionTopicId], references: [id],onDelete:Restrict , onUpdate:Restrict)
+  isActive       Boolean         @default(true)
+  questionDetails QuestionDetail[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("questions")
+}
+
+model QuestionDetail {
+  questionId        Int             
+  questionPackageId Int             
+  question          Question        @relation(fields: [questionId], references: [id] ,onDelete:Restrict, onUpdate:Restrict)
+  questionPackage   QuestionPackage @relation(fields: [questionPackageId], references: [id],onDelete:Restrict,onUpdate:Restrict)
+  questionOrder     Int            
+  isActive         Boolean        
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([questionId, questionPackageId])
+  @@map("question_Details")
+}
+
+model Contest {
+  id           Int             @id @default(autoincrement())
+  name         String          @db.VarChar(255)
+  slug         String          @db.VarChar(255) @unique
+  rule         String          @db.Text
+  plainText    String          @db.Text
+  location     String          @db.VarChar(255)
+  startTime    DateTime
+  endTime      DateTime
+  slogan       String?         @db.VarChar(255)
+  status       ContestStatus   @default(upcoming)
+  isActive     Boolean         @default(true)
+
+  // Quan hệ mới
+  mediaFiles   Media[]
+
+  matches      Match[]
+  contestants  Contestant[]
+  awards       Award[]
+  round        Round[]
+  ClassVideo   ClassVideo[]
+  Sponsor      Sponsor[]
+
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@map("contests")
+}
+
+model Media {
+  id         Int        @id @default(autoincrement())
+  url        String     @db.VarChar(255)
+  type       ContestMedia
+  contest    Contest?   @relation(fields: [contestId], references: [id])
+  contestId  Int?
+
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@map("media")
+}
+
+model Round {
+  id          Int          @id @default(autoincrement())
+  name        String       @db.VarChar(255)
+  index       Int       
+  contestId   Int   
+  startTime    DateTime   @default(now())
+  endTime      DateTime   @default(now())     
+  contest     Contest      @relation(fields:[contestId],references:[id],onDelete:Restrict, onUpdate : Restrict)
+  isActive    Boolean      @default(true) 
+  contestants Contestant[]
+  matches     Match[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("rounds")
+}
+
+model Match {
+  id               Int                @id @default(autoincrement())
+  name             String             @db.VarChar(255)
+  startTime        DateTime        
+  endTime          DateTime        
+  slug             String?           @unique
+  remainingTime  Int?   
+  status           ContestStatus      @default(upcoming)
+  currentQuestion  Int               
+  questionPackageId Int             
+  questionPackage  QuestionPackage    @relation(fields: [questionPackageId], references: [id] ,onDelete:Restrict,onUpdate:Restrict)
+  contestId        Int               
+  contest          Contest            @relation(fields: [contestId], references: [id],onDelete:Restrict , onUpdate:Restrict)
+  roundId          Int 
+  round            Round              @relation(fields:[roundId],references:[id],onDelete :Restrict , onUpdate :Restrict)
+  isActive         Boolean            @default(true) 
+  studentId        Int?              
+  student           Student?           @relation(fields: [studentId], references: [id] , onDelete:Restrict ,onUpdate:Restrict)
+  groups           Group[]
+  contestantMatches ContestantMatch[]
+  results          Result[]
+  rescues          Rescue[]
+  awards           Award[]
+  screenControls   ScreenControl?   
+  maxContestantColumn Int? @default(10)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("matches")
+}
+
+model Group {
+  id                   Int               @id @default(autoincrement())
+  name                 String            @db.VarChar(255)
+  userId               Int?          
+  user                 User?             @relation(fields: [userId], references: [id],onDelete:Restrict, onUpdate:Restrict)
+  matchId              Int              
+  match                Match             @relation(fields: [matchId], references: [id],onDelete:Restrict ,onUpdate:Restrict)
+  confirmCurrentQuestion Int              
+  contestantMatches    ContestantMatch[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("groups")
+}
+
+model Contestant {
+  id                Int               @id @default(autoincrement())
+  contestId         Int              
+  contest           Contest           @relation(fields: [contestId], references: [id],onDelete:Restrict,onUpdate:Restrict)
+  studentId         Int              
+  student           Student           @relation(fields: [studentId], references: [id] , onDelete:Restrict ,onUpdate:Restrict)
+  roundId           Int               
+  round             Round             @relation(fields: [roundId], references: [id],onDelete:Restrict,onUpdate:Restrict)
+  status            ContestantStatus  @default(compete)
+  contestantMatches ContestantMatch[]
+  results           Result[]
+  awards            Award[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("contestants")
+}
+
+model ContestantMatch {
+  contestantId     Int                  
+  matchId          Int                 
+  groupId          Int             
+  contestant       Contestant           @relation(fields: [contestantId], references: [id] ,onDelete :Restrict , onUpdate :Restrict)
+  match            Match               @relation(fields: [matchId], references: [id],onDelete :Restrict , onUpdate :Restrict)
+  group            Group               @relation(fields: [groupId], references: [id],onDelete :Restrict , onUpdate :Restrict)
+  registrationNumber Int                
+  status           ContestantMatchStatus @default(not_started)
+  eliminatedAtQuestionOrder Int?       
+  rescuedAtQuestionOrder Int?           // note trường này để lưu câu được cứu trợ
+  isActive         Boolean              @default(true) 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([contestantId, matchId])
+  @@map("contestant_Matches")
+}
+
+model Result {
+  id             Int        @id @default(autoincrement())
+  contestantId   Int        @map("contestant_id")
+  matchId        Int        @map("match_id")
+  contestant     Contestant @relation(fields: [contestantId], references: [id],onDelete :Restrict , onUpdate :Restrict)
+  match          Match      @relation(fields: [matchId], references: [id],onDelete :Restrict , onUpdate :Restrict)
+  isCorrect      Boolean    @default(true) 
+  questionOrder  Int       
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("results")
+}
+
+model Rescue {
+  id                 Int          @id @default(autoincrement())
+  name               String       @db.VarChar(255)
+  rescueType         RescueType  
+  questionFrom       Int         
+  questionTo         Int        
+  studentIds         Json?        
+  supportAnswers     Json?      
+  remainingContestants Int     
+  questionOrder         Int?      
+  index              Int?
+  status             RescueStatus
+  matchId            Int          @map("match_id")
+  match              Match        @relation(fields: [matchId], references: [id],onDelete :Restrict , onUpdate :Restrict)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("rescues")
+}
+
+model Award { 
+  id           Int        @id @default(autoincrement())
+  name         String     @db.VarChar(255)
+  contestId    Int        @map("contest_id")
+  contest      Contest    @relation(fields: [contestId], references: [id],onDelete :Restrict , onUpdate :Restrict)
+  contestantId Int?       @map("contestant_id")
+  matchId      Int?       @map("match_id")
+  match        Match?     @relation(fields: [matchId], references: [id],onDelete :Restrict , onUpdate :Restrict)
+  contestant   Contestant? @relation(fields: [contestantId], references: [id],onDelete :Restrict , onUpdate :Restrict)
+  type         AwardType  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("awards")
+}
+
+model Sponsor {
+  id         Int      @id @default(autoincrement())
+  name       String   @db.VarChar(255)
+  logo       String?  @db.VarChar(255)
+  images     String?  @db.VarChar(255)
+  videos     String   @db.VarChar(255)
+
+  contestId  Int?
+  contest    Contest? @relation(fields: [contestId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("sponsors")
+}
+
+model ClassVideo {
+  id         Int       @id @default(autoincrement())
+  name       String    @db.VarChar(255)
+  slogan     String?   @db.VarChar(255)
+  classId    Int
+  class      Class     @relation(fields: [classId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  contestId  Int?
+  contest    Contest?  @relation(fields: [contestId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  videos     String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("class_Videos")
+}
+
+model ScreenControl {
+  id           Int          @id @default(autoincrement())
+  controlKey   ControlKey   @default(background)
+  controlValue ControlValue?
+  matchId      Int          @unique     
+  match        Match        @relation(fields: [matchId], references: [id],onDelete:Restrict,onUpdate:Restrict)
+  media        String?       @db.VarChar(255)
+  value        String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("screen_controls")
+}

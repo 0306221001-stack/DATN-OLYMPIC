@@ -1,0 +1,374 @@
+{
+  "info": {
+    "name": "Question Topic API",
+    "description": "API collection for Question Topic Management in Contest Backend",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "your-jwt-token-here",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Create Question Topic",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Toán học cơ bản\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/question-topics",
+          "host": ["{{baseUrl}}"],
+          "path": ["question-topics"]
+        },
+        "description": "Create a new question topic"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Toán học cơ bản\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/question-topics",
+              "host": ["{{baseUrl}}"],
+              "path": ["question-topics"]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Tạo chủ đề câu hỏi thành công\",\n  \"data\": {\n    \"id\": 1,\n    \"name\": \"Toán học cơ bản\",\n    \"isActive\": true,\n    \"createdAt\": \"2025-06-06T10:30:00.000Z\",\n    \"updatedAt\": \"2025-06-06T10:30:00.000Z\"\n  },\n  \"timestamp\": \"2025-06-06T10:30:00.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get All Question Topics",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/question-topics?page=1&limit=10&search=&isActive=&sortBy=createdAt&sortOrder=desc",
+          "host": ["{{baseUrl}}"],
+          "path": ["question-topics"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1",
+              "description": "Page number (default: 1)"
+            },
+            {
+              "key": "limit",
+              "value": "10",
+              "description": "Items per page (default: 10, max: 100)"
+            },
+            {
+              "key": "search",
+              "value": "",
+              "description": "Search by name"
+            },
+            {
+              "key": "isActive",
+              "value": "",
+              "description": "Filter by active status (true/false)"
+            },
+            {
+              "key": "sortBy",
+              "value": "createdAt",
+              "description": "Sort field (name, createdAt, updatedAt)"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc",
+              "description": "Sort order (asc, desc)"
+            }
+          ]
+        },
+        "description": "Get all question topics with pagination and filtering"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/question-topics?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["question-topics"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Lấy danh sách chủ đề câu hỏi thành công\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"name\": \"Toán học cơ bản\",\n      \"isActive\": true,\n      \"questionsCount\": 25,\n      \"createdAt\": \"2025-06-06T10:30:00.000Z\",\n      \"updatedAt\": \"2025-06-06T10:30:00.000Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1,\n    \"totalPages\": 1,\n    \"hasNext\": false,\n    \"hasPrev\": false\n  },\n  \"timestamp\": \"2025-06-06T10:30:00.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get Active Question Topics",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/question-topics/active",
+          "host": ["{{baseUrl}}"],
+          "path": ["question-topics", "active"]
+        },
+        "description": "Get all active question topics for dropdown/select components"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/question-topics/active",
+              "host": ["{{baseUrl}}"],
+              "path": ["question-topics", "active"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Lấy danh sách chủ đề câu hỏi hoạt động thành công\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"name\": \"Toán học cơ bản\"\n    },\n    {\n      \"id\": 2,\n      \"name\": \"Toán học nâng cao\"\n    }\n  ],\n  \"timestamp\": \"2025-06-06T10:30:00.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Get Question Topic by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/question-topics/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["question-topics", "1"]
+        },
+        "description": "Get a specific question topic with detailed information"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/question-topics/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["question-topics", "1"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Lấy thông tin chủ đề câu hỏi thành công\",\n  \"data\": {\n    \"id\": 1,\n    \"name\": \"Toán học cơ bản\",\n    \"isActive\": true,\n    \"questionsCount\": 25,\n    \"createdAt\": \"2025-06-06T10:30:00.000Z\",\n    \"updatedAt\": \"2025-06-06T10:30:00.000Z\",\n    \"questions\": [\n      {\n        \"id\": 1,\n        \"plainText\": \"2 + 2 = ?\",\n        \"questionType\": \"multiple_choice\",\n        \"difficulty\": \"Alpha\"\n      }\n    ]\n  },\n  \"timestamp\": \"2025-06-06T10:30:00.000Z\"\n}"
+        },
+        {
+          "name": "Not Found Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/question-topics/999",
+              "host": ["{{baseUrl}}"],
+              "path": ["question-topics", "999"]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"message\": \"Không tìm thấy chủ đề câu hỏi\",\n  \"error\": \"RECORD_NOT_FOUND\",\n  \"timestamp\": \"2025-06-06T10:30:00.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Update Question Topic",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Toán học nâng cao\",\n  \"isActive\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/question-topics/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["question-topics", "1"]
+        },
+        "description": "Update an existing question topic"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Toán học nâng cao\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/question-topics/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["question-topics", "1"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Cập nhật chủ đề câu hỏi thành công\",\n  \"data\": {\n    \"id\": 1,\n    \"name\": \"Toán học nâng cao\",\n    \"isActive\": true,\n    \"createdAt\": \"2025-06-06T10:30:00.000Z\",\n    \"updatedAt\": \"2025-06-06T11:00:00.000Z\"\n  },\n  \"timestamp\": \"2025-06-06T11:00:00.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Delete Question Topic",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/question-topics/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["question-topics", "1"]
+        },
+        "description": "Soft delete a question topic (set isActive to false)"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/question-topics/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["question-topics", "1"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Xóa chủ đề câu hỏi thành công\",\n  \"data\": null,\n  \"timestamp\": \"2025-06-06T11:00:00.000Z\"\n}"
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,3149 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: lib/**/*, pubspec.yaml
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+lib/
+  core/
+    config/
+      env.dart
+    network/
+      api_client.dart
+      api_endpoints.dart
+      socket_service.dart
+    router/
+      app_router.dart
+      app_routes.dart
+      auth_guard.dart
+    storage/
+      token_storage.dart
+  features/
+    auth/
+      data/
+        auth_api.dart
+        auth_repository.dart
+        auth_user.dart
+      domain/
+        auth_user.dart
+      presentation/
+        login_screen.dart
+        register_screen.dart
+        splash_screen.dart
+    match/
+      data/
+        match_repository.dart
+      presentation/
+        match_screen.dart
+        waiting_room_screen.dart
+    profile/
+      presentation/
+        profile_screen.dart
+    rescue/
+      presentation/
+        rescue_screen.dart
+  main.dart
+pubspec.yaml
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="lib/core/config/env.dart">
+import 'package:flutter/foundation.dart';
+
+/// Môi trường chạy của ứng dụng.
+enum AppEnvironment { development, production }
+
+/// Cấu hình môi trường tập trung cho toàn bộ app.
+///
+/// Cách truyền cấu hình khi chạy / build:
+///
+/// ```bash
+/// # Máy ảo Android (mặc định http://10.0.2.2:3000) hoặc iOS Simulator
+/// flutter run
+///
+/// # Thiết bị thật trong cùng mạng LAN với Backend
+/// flutter run --dart-define=SERVER_URL=http://192.168.1.10:3000
+///
+/// # Production (bắt buộc truyền SERVER_URL)
+/// flutter build apk --dart-define=APP_ENV=production --dart-define=SERVER_URL=https://api.example.com
+/// ```
+///
+/// Lưu ý: `SERVER_URL` là địa chỉ gốc của Backend, KHÔNG có hậu tố `/api`.
+class Env {
+  Env._();
+
+  static const String _appEnvRaw =
+      String.fromEnvironment('APP_ENV', defaultValue: 'development');
+  static const String _serverUrlRaw =
+      String.fromEnvironment('SERVER_URL', defaultValue: '');
+
+  // ---------------------------------------------------------------------------
+  // Môi trường
+  // ---------------------------------------------------------------------------
+
+  static AppEnvironment get environment =>
+      _appEnvRaw.trim().toLowerCase() == 'production'
+          ? AppEnvironment.production
+          : AppEnvironment.development;
+
+  static bool get isProduction => environment == AppEnvironment.production;
+
+  static bool get isDevelopment => environment == AppEnvironment.development;
+
+  // ---------------------------------------------------------------------------
+  // URL máy chủ
+  // ---------------------------------------------------------------------------
+
+  /// Địa chỉ gốc của Backend, ví dụ `http://192.168.1.10:3000`.
+  static String get serverUrl {
+    final String override = _normalizeUrl(_serverUrlRaw);
+
+    if (override.isNotEmpty) {
+      _assertValidUrl(override);
+      return override;
+    }
+
+    if (isProduction) {
+      throw StateError(
+        'Thiếu cấu hình SERVER_URL cho môi trường production. '
+        'Hãy build với --dart-define=SERVER_URL=https://your-domain.com',
+      );
+    }
+
+    return _defaultDevelopmentServerUrl;
+  }
+
+  /// Base URL cho toàn bộ REST API (đã gồm `/api`).
+  static String get apiBaseUrl => '$serverUrl/api';
+
+  /// URL gốc để kết nối Socket.IO.
+  static String get socketUrl => serverUrl;
+
+  /// Namespace Socket.IO dành cho thí sinh (Student).
+  static String get studentNamespaceUrl => '$serverUrl/student';
+
+  /// Namespace Socket.IO dành cho điều khiển trận đấu (Judge/Admin).
+  static String get matchControlNamespaceUrl => '$serverUrl/match-control';
+
+  /// Địa chỉ mặc định khi phát triển:
+  /// - Android Emulator truy cập máy host qua 10.0.2.2
+  /// - iOS Simulator và các nền tảng khác dùng localhost
+  static String get _defaultDevelopmentServerUrl {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:3000';
+    }
+    return 'http://localhost:3000';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Đường dẫn API dùng chung ở tầng core
+  // ---------------------------------------------------------------------------
+
+  /// Endpoint lấy lại access token (Backend đọc refreshToken từ cookie).
+  static const String refreshTokenPath = '/auth/refresh-token';
+
+  // ---------------------------------------------------------------------------
+  // Tên cookie mà Backend sử dụng để xác thực
+  // ---------------------------------------------------------------------------
+
+  static const String accessTokenCookieName = 'accessToken';
+  static const String refreshTokenCookieName = 'refreshToken';
+
+  // ---------------------------------------------------------------------------
+  // Timeout mạng
+  // ---------------------------------------------------------------------------
+
+  static const Duration connectTimeout = Duration(seconds: 15);
+  static const Duration receiveTimeout = Duration(seconds: 30);
+  static const Duration sendTimeout = Duration(seconds: 30);
+
+  // ---------------------------------------------------------------------------
+  // Hàm hỗ trợ
+  // ---------------------------------------------------------------------------
+
+  static String _normalizeUrl(String value) {
+    String result = value.trim();
+    while (result.endsWith('/')) {
+      result = result.substring(0, result.length - 1);
+    }
+    return result;
+  }
+
+  static void _assertValidUrl(String value) {
+    final Uri? uri = Uri.tryParse(value);
+    final bool isValid = uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
+
+    if (!isValid) {
+      throw StateError(
+        'SERVER_URL không hợp lệ: "$value". '
+        'Ví dụ đúng: http://192.168.1.10:3000 hoặc https://api.example.com',
+      );
+    }
+  }
+}
+</file>
+
+<file path="lib/core/network/api_client.dart">
+import 'dart:async';
+
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../config/env.dart';
+import '../storage/token_storage.dart';
+
+// =============================================================================
+// Kiểu dữ liệu dùng chung
+// =============================================================================
+
+enum SessionExpiredReason {
+  tokenExpired,
+  loggedInElsewhere,
+  accountLocked,
+}
+
+class ApiException implements Exception {
+  const ApiException({
+    required this.message,
+    this.statusCode,
+    this.code,
+    this.fieldErrors = const <String, String>{},
+    this.isNetworkError = false,
+    this.isTimeout = false,
+    this.isCancelled = false,
+  });
+
+  final String message;
+  final int? statusCode;
+  final String? code;
+  final Map<String, String> fieldErrors;
+  final bool isNetworkError;
+  final bool isTimeout;
+  final bool isCancelled;
+
+  bool get isUnauthorized => statusCode == 401;
+
+  @override
+  String toString() =>
+      'ApiException(status: $statusCode, code: $code, message:$message)';
+}
+
+class ApiResult {
+  const ApiResult({
+    required this.success,
+    required this.message,
+    required this.data,
+    required this.raw,
+    this.statusCode,
+  });
+
+  final bool success;
+  final String message;
+  final dynamic data;
+  final Map<String, dynamic> raw;
+  final int? statusCode;
+
+  Map<String, dynamic> get dataAsMap {
+    final dynamic value = data;
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    return <String, dynamic>{};
+  }
+
+  List<dynamic> get dataAsList {
+    final dynamic value = data;
+    if (value is List) {
+      return value;
+    }
+    return <dynamic>[];
+  }
+}
+
+enum _RefreshOutcome { success, rejected, networkError }
+
+// =============================================================================
+// ApiClient
+// =============================================================================
+
+class ApiClient {
+  ApiClient({
+    required TokenStorage tokenStorage,
+    Dio? dio,
+    Dio? refreshDio,
+  })  : _tokenStorage = tokenStorage,
+        _dio = dio ?? Dio(_buildBaseOptions()),
+        _refreshDio = refreshDio ?? Dio(_buildBaseOptions()) {
+    _dio.interceptors.add(_AuthInterceptor(this));
+    if (kDebugMode) {
+      _dio.interceptors.add(_DebugLogInterceptor());
+    }
+  }
+
+  static const String skipAuthKey = 'skipAuth';
+  static const String _retriedKey = '_authRetried';
+
+  final TokenStorage _tokenStorage;
+  final Dio _dio;
+  final Dio _refreshDio;
+
+  final StreamController<SessionExpiredReason> _sessionController =
+      StreamController<SessionExpiredReason>.broadcast();
+
+  Future<_RefreshOutcome>? _refreshInFlight;
+  bool _sessionExpiredNotified = false;
+
+  static BaseOptions _buildBaseOptions() {
+    return BaseOptions(
+      baseUrl: Env.apiBaseUrl,
+      connectTimeout: Env.connectTimeout,
+      receiveTimeout: Env.receiveTimeout,
+      sendTimeout: Env.sendTimeout,
+      responseType: ResponseType.json,
+      extra: <String, dynamic>{'withCredentials': true},
+      headers: <String, dynamic>{
+        Headers.acceptHeader: Headers.jsonContentType,
+      },
+    );
+  }
+
+  Dio get dio => _dio;
+  TokenStorage get tokenStorage => _tokenStorage;
+
+  Stream<SessionExpiredReason> get onSessionExpired =>
+      _sessionController.stream;
+
+  void dispose() {
+    _dio.close(force: true);
+    _refreshDio.close(force: true);
+    _sessionController.close();
+  }
+
+  Future<ApiResult> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    bool requiresAuth = true,
+    CancelToken? cancelToken,
+  }) {
+    return _send(
+      'GET',
+      path,
+      queryParameters: queryParameters,
+      requiresAuth: requiresAuth,
+      cancelToken: cancelToken,
+    );
+  }
+
+  Future<ApiResult> post(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    bool requiresAuth = true,
+    CancelToken? cancelToken,
+  }) {
+    return _send(
+      'POST',
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      requiresAuth: requiresAuth,
+      cancelToken: cancelToken,
+    );
+  }
+
+  Future<ApiResult> put(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    bool requiresAuth = true,
+    CancelToken? cancelToken,
+  }) {
+    return _send(
+      'PUT',
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      requiresAuth: requiresAuth,
+      cancelToken: cancelToken,
+    );
+  }
+
+  Future<ApiResult> patch(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    bool requiresAuth = true,
+    CancelToken? cancelToken,
+  }) {
+    return _send(
+      'PATCH',
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      requiresAuth: requiresAuth,
+      cancelToken: cancelToken,
+    );
+  }
+
+  Future<ApiResult> delete(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    bool requiresAuth = true,
+    CancelToken? cancelToken,
+  }) {
+    return _send(
+      'DELETE',
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      requiresAuth: requiresAuth,
+      cancelToken: cancelToken,
+    );
+  }
+
+  Future<bool> tryRestoreSession() async {
+    final String? refreshToken = await _tokenStorage.readRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      return false;
+    }
+    final _RefreshOutcome outcome = await _refreshAccessToken();
+    return outcome == _RefreshOutcome.success;
+  }
+
+  Future<void> endSession(SessionExpiredReason reason) async {
+    try {
+      await _tokenStorage.clear();
+    } catch (error) {
+      debugPrint('[ApiClient] Không thể xóa token khi kết thúc phiên: $error');
+    }
+
+    if (_sessionExpiredNotified || _sessionController.isClosed) {
+      return;
+    }
+    _sessionExpiredNotified = true;
+    _sessionController.add(reason);
+  }
+
+  void markSessionActive() {
+    _sessionExpiredNotified = false;
+  }
+
+  Future<ApiResult> _send(
+    String method,
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    required bool requiresAuth,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final Response<dynamic> response = await _dio.request<dynamic>(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        cancelToken: cancelToken,
+        options: Options(
+          method: method,
+          extra: <String, dynamic>{skipAuthKey: !requiresAuth},
+        ),
+      );
+      return _toResult(response);
+    } on ApiException {
+      rethrow;
+    } on DioException catch (error) {
+      throw _mapDioException(error);
+    } catch (error) {
+      throw ApiException(
+        message: 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.',
+        code: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  ApiResult _toResult(Response<dynamic> response) {
+    final dynamic body = response.data;
+
+    if (body is Map) {
+      final Map<String, dynamic> map = Map<String, dynamic>.from(body);
+      final bool success = map['success'] != false;
+      final String message = _readString(map['message']) ?? '';
+
+      if (!success) {
+        throw ApiException(
+          message: message.isNotEmpty ? message : 'Yêu cầu không thành công.',
+          statusCode: response.statusCode,
+          code: _readCode(map),
+          fieldErrors: _readFieldErrors(map),
+        );
+      }
+
+      return ApiResult(
+        success: true,
+        message: message,
+        data: map['data'],
+        raw: map,
+        statusCode: response.statusCode,
+      );
+    }
+
+    return ApiResult(
+      success: true,
+      message: '',
+      data: body,
+      raw: <String, dynamic>{'data': body},
+      statusCode: response.statusCode,
+    );
+  }
+
+  ApiException _mapDioException(DioException error) {
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return ApiException(
+          message: 'Kết nối tới máy chủ quá thời gian. Vui lòng thử lại.',
+          statusCode: error.response?.statusCode,
+        );
+      case DioExceptionType.badResponse:
+        final data = error.response?.data;
+        String message = 'Đã xảy ra lỗi từ phía máy chủ.';
+        if (data is Map && data.containsKey('message')) {
+          message = data['message'].toString();
+        }
+        return ApiException(
+          message: message,
+          statusCode: error.response?.statusCode,
+        );
+      case DioExceptionType.cancel:
+        return ApiException(
+          message: 'Yêu cầu kết nối đã bị hủy.',
+          statusCode: error.response?.statusCode,
+        );
+      case DioExceptionType.connectionError:
+        return ApiException(
+          message: 'Không thể kết nối tới máy chủ. Vui lòng kiểm tra kết nối mạng.',
+          statusCode: error.response?.statusCode,
+        );
+      case DioExceptionType.badCertificate:
+        return ApiException(
+          message: 'Lỗi chứng chỉ bảo mật kết nối.',
+          statusCode: error.response?.statusCode,
+        );
+      case DioExceptionType.unknown:
+      default:
+        return ApiException(
+          message: 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.',
+          statusCode: error.response?.statusCode,
+        );
+    }
+  }
+
+  Future<bool> _persistCookiesFrom(Headers headers) async {
+    final List<String>? setCookies = headers.map['set-cookie'];
+    if (setCookies == null || setCookies.isEmpty) {
+      return false;
+    }
+
+    bool accessUpdated = false;
+
+    for (final String rawCookie in setCookies) {
+      final MapEntry<String, String>? cookie = _parseSetCookie(rawCookie);
+      if (cookie == null) {
+        continue;
+      }
+
+      try {
+        if (cookie.key == Env.accessTokenCookieName) {
+          if (cookie.value.isEmpty) {
+            await _tokenStorage.clearAccessToken();
+          } else {
+            await _tokenStorage.saveTokens(accessToken: cookie.value);
+            accessUpdated = true;
+          }
+        } else if (cookie.key == Env.refreshTokenCookieName) {
+          if (cookie.value.isEmpty) {
+            await _tokenStorage.clearRefreshToken();
+          } else {
+            await _tokenStorage.saveTokens(refreshToken: cookie.value);
+          }
+        }
+      } catch (error) {
+        debugPrint('[ApiClient] Không thể lưu cookie "${cookie.key}": $error');
+      }
+    }
+
+    if (accessUpdated) {
+      markSessionActive();
+    }
+    return accessUpdated;
+  }
+
+  MapEntry<String, String>? _parseSetCookie(String rawCookie) {
+    final String firstPart = rawCookie.split(';').first.trim();
+    final int separator = firstPart.indexOf('=');
+    if (separator <= 0) {
+      return null;
+    }
+
+    final String name = firstPart.substring(0, separator).trim();
+    String value = firstPart.substring(separator + 1).trim();
+
+    try {
+      value = Uri.decodeComponent(value);
+    } catch (_) {}
+
+    return MapEntry<String, String>(name, value);
+  }
+
+  String? _accessTokenFromCookieHeader(Object? cookieHeader) {
+    if (cookieHeader is! String || cookieHeader.isEmpty) {
+      return null;
+    }
+
+    final String prefix = '${Env.accessTokenCookieName}=';
+    for (final String part in cookieHeader.split(';')) {
+      final String trimmed = part.trim();
+      if (trimmed.startsWith(prefix)) {
+        return trimmed.substring(prefix.length);
+      }
+    }
+    return null;
+  }
+
+  Future<_RefreshOutcome> _refreshAccessToken() {
+    final Future<_RefreshOutcome>? existing = _refreshInFlight;
+    if (existing != null) {
+      return existing;
+    }
+
+    final Future<_RefreshOutcome> future =
+        _performRefresh().whenComplete(() => _refreshInFlight = null);
+    _refreshInFlight = future;
+    return future;
+  }
+
+  Future<_RefreshOutcome> _performRefresh() async {
+    final String? refreshToken = await _tokenStorage.readRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      return _RefreshOutcome.rejected;
+    }
+
+    try {
+      final Response<dynamic> response = await _refreshDio.get<dynamic>(
+        Env.refreshTokenPath,
+        options: Options(
+          headers: <String, dynamic>{
+            'Cookie': '${Env.refreshTokenCookieName}=$refreshToken',
+            'Authorization': 'Bearer $refreshToken',
+          },
+        ),
+      );
+
+      final dynamic body = response.data;
+      if (body is Map && body['success'] == false) {
+        return _RefreshOutcome.rejected;
+      }
+
+      bool accessUpdated = await _persistCookiesFrom(response.headers);
+
+      if (!accessUpdated && body is Map) {
+        final dynamic data = body['data'];
+        String? token;
+        if (data is Map && data['accessToken'] is String) {
+          token = data['accessToken'] as String;
+        } else if (body['accessToken'] is String) {
+          token = body['accessToken'] as String;
+        }
+
+        if (token != null && token.isNotEmpty) {
+          await _tokenStorage.saveTokens(accessToken: token);
+          markSessionActive();
+          accessUpdated = true;
+        }
+      }
+
+      if (!accessUpdated) {
+        return _RefreshOutcome.rejected;
+      }
+
+      return _RefreshOutcome.success;
+    } on DioException catch (error) {
+      final int? status = error.response?.statusCode;
+      if (status == 400 || status == 401 || status == 403) {
+        return _RefreshOutcome.rejected;
+      }
+      return _RefreshOutcome.networkError;
+    } catch (error) {
+      return _RefreshOutcome.networkError;
+    }
+  }
+
+  String? _readString(dynamic value) {
+    if (value is String && value.trim().isNotEmpty) {
+      return value;
+    }
+    return null;
+  }
+
+  String? _readCode(Map<String, dynamic> body) {
+    final dynamic code = body['code'];
+    if (code is String && code.isNotEmpty) {
+      return code;
+    }
+    final dynamic error = body['error'];
+    if (error is String && error.isNotEmpty) {
+      return error;
+    }
+    if (error is Map && error['type'] is String) {
+      return error['type'] as String;
+    }
+    return null;
+  }
+
+  Map<String, String> _readFieldErrors(Map<String, dynamic> body) {
+    final dynamic error = body['error'];
+    if (error is! Map) {
+      return const <String, String>{};
+    }
+
+    final dynamic details = error['details'];
+    if
+  }
+</file>
+
+<file path="lib/core/network/api_endpoints.dart">
+
+</file>
+
+<file path="lib/core/network/socket_service.dart">
+
+</file>
+
+<file path="lib/core/router/app_router.dart">
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../features/auth/data/auth_repository.dart';
+import '../../features/auth/domain/auth_user.dart';
+import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/splash_screen.dart';
+import 'app_routes.dart';
+import 'auth_guard.dart';
+
+/// Provider `GoRouter` của toàn app.
+///
+/// Auth Guard hoạt động qua `redirect` + `refreshListenable`: mỗi khi trạng
+/// thái phiên đổi (đăng nhập, đăng xuất, phiên hết hạn, đăng nhập nơi khác),
+/// router tự đánh giá lại và đưa người dùng đến đúng màn hình.
+final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((ref) {
+  final AuthSessionController session =
+      ref.watch(authSessionControllerProvider);
+
+  final GoRouter router = GoRouter(
+    initialLocation: AppRoutes.splash,
+    debugLogDiagnostics: kDebugMode,
+    refreshListenable: session,
+    redirect: (BuildContext context, GoRouterState state) {
+      return resolveAuthRedirect(
+        status: session.status,
+        user: session.user,
+        location: state.uri.toString(),
+      );
+    },
+    errorBuilder: (BuildContext context, GoRouterState state) {
+      return const _NotFoundScreen();
+    },
+    routes: <RouteBase>[
+      GoRoute(
+        path: '/',
+        redirect: (BuildContext context, GoRouterState state) =>
+            AppRoutes.splash,
+      ),
+      GoRoute(
+        path: AppRoutes.splash,
+        builder: (BuildContext context, GoRouterState state) =>
+            const SplashScreen(),
+      ),
+
+      // --- Công khai -------------------------------------------------------
+      GoRoute(
+        path: AppRoutes.login,
+        builder: (BuildContext context, GoRouterState state) {
+          final bool isJudge = state.uri.queryParameters['role'] == 'judge';
+          return LoginScreen(
+            initialRole: isJudge ? UserRole.judge : UserRole.student,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.register,
+        builder: (BuildContext context, GoRouterState state) {
+          return const _PlaceholderScreen(
+            title: 'Đăng ký thí sinh',
+            description: 'Màn hình đăng ký sẽ được hoàn thiện ở bước tiếp theo.',
+            requiresAuth: false,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        builder: (BuildContext context, GoRouterState state) {
+          return const _PlaceholderScreen(
+            title: 'Quên mật khẩu',
+            description:
+                'Màn hình lấy lại mật khẩu bằng OTP sẽ được hoàn thiện ở bước tiếp theo.',
+            requiresAuth: false,
+          );
+        },
+      ),
+
+      // --- Thí sinh --------------------------------------------------------
+      GoRoute(
+        path: AppRoutes.studentDashboard,
+        builder: (BuildContext context, GoRouterState state) {
+          return const _PlaceholderScreen(
+            title: 'Trang thí sinh',
+            description: 'Danh sách trận đấu của thí sinh (Step 3).',
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.studentMatch,
+        builder: (BuildContext context, GoRouterState state) {
+          return _PlaceholderScreen(
+            title: 'Phòng chờ trận đấu',
+            description:
+                'Trận: ${state.pathParameters['matchSlug'] ?? ''} (Step 3).',
+          );
+        },
+      ),
+
+      // --- Trọng tài -------------------------------------------------------
+      GoRoute(
+        path: AppRoutes.judgeContests,
+        builder: (BuildContext context, GoRouterState state) {
+          return const _PlaceholderScreen(
+            title: 'Danh sách cuộc thi',
+            description: 'Trọng tài chọn cuộc thi (Step 3).',
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.judgeMatches,
+        builder: (BuildContext context, GoRouterState state) {
+          return _PlaceholderScreen(
+            title: 'Danh sách trận đấu',
+            description:
+                'Cuộc thi #${state.pathParameters['contestId'] ?? ''} (Step 3).',
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.judgeMatchControl,
+        builder: (BuildContext context, GoRouterState state) {
+          return _PlaceholderScreen(
+            title: 'Điều khiển trận đấu',
+            description:
+                'Trận: ${state.pathParameters['match'] ?? ''} (Step 3).',
+          );
+        },
+      ),
+
+      // --- Dùng chung ------------------------------------------------------
+      GoRoute(
+        path: AppRoutes.profile,
+        builder: (BuildContext context, GoRouterState state) {
+          return const _PlaceholderScreen(
+            title: 'Hồ sơ cá nhân',
+            description: 'Thông tin tài khoản (Step 5).',
+          );
+        },
+      ),
+    ],
+  );
+
+  ref.onDispose(router.dispose);
+  return router;
+});
+
+/// Màn hình tạm cho các tính năng chưa viết. Có nút đăng xuất để kiểm tra
+/// Auth Guard; sẽ được thay bằng màn hình thật ở các bước sau.
+class _PlaceholderScreen extends ConsumerWidget {
+  const _PlaceholderScreen({
+    required this.title,
+    required this.description,
+    this.requiresAuth = true,
+  });
+
+  final String title;
+  final String description;
+  final bool requiresAuth;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ThemeData theme = Theme.of(context);
+    final AuthUser? user =
+        requiresAuth ? ref.watch(authSessionControllerProvider).user : null;
+
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  Icons.construction_rounded,
+                  size: 56,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(height: 16),
+                if (user != null) ...<Widget>[
+                  Text(
+                    'Xin chào, ${user.displayName}',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Vai trò: ${user.role.label}',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                Text(
+                  description,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 24),
+                if (requiresAuth)
+                  FilledButton.icon(
+                    onPressed: () => ref.read(authRepositoryProvider).logout(),
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Đăng xuất'),
+                  )
+                else
+                  FilledButton.icon(
+                    onPressed: () => context.go(AppRoutes.login),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Quay lại đăng nhập'),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NotFoundScreen extends ConsumerWidget {
+  const _NotFoundScreen();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ThemeData theme = Theme.of(context);
+    final AuthUser? user = ref.watch(authSessionControllerProvider).user;
+    final String home =
+        user == null ? AppRoutes.login : homeRouteFor(user.role);
+
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  Icons.search_off_rounded,
+                  size: 64,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Không tìm thấy trang',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: () => context.go(home),
+                  child: const Text('Về trang chính'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+</file>
+
+<file path="lib/core/router/app_routes.dart">
+/// Toàn bộ đường dẫn của app. Giữ nguyên cấu trúc đường dẫn của web để dễ đối
+/// chiếu với Frontend hiện có.
+class AppRoutes {
+  const AppRoutes._();
+
+  // Khởi động & xác thực (công khai)
+  static const String splash = '/splash';
+  static const String login = '/login';
+  static const String register = '/student/register';
+  static const String forgotPassword = '/forgot-password';
+
+  // Thí sinh
+  static const String studentDashboard = '/student/dashboard';
+  static const String studentMatch = '/student/match/:matchSlug';
+
+  // Trọng tài
+  static const String judgeContests = '/cuoc-thi';
+  static const String judgeMatches = '/cuoc-thi/:contestId/tran-dau';
+  static const String judgeMatchControl = '/trong-tai/tran-dau/:match';
+
+  // Dùng chung cho mọi tài khoản đã đăng nhập
+  static const String profile = '/account/profile';
+
+  // ---------------------------------------------------------------------------
+  // Dựng đường dẫn có tham số
+  // ---------------------------------------------------------------------------
+
+  static String studentMatchPath(String matchSlug) =>
+      '/student/match/${Uri.encodeComponent(matchSlug)}';
+
+  static String judgeMatchesPath(int contestId) =>
+      '/cuoc-thi/$contestId/tran-dau';
+
+  static String judgeMatchControlPath(String matchSlug) =>
+      '/trong-tai/tran-dau/${Uri.encodeComponent(matchSlug)}';
+
+  // ---------------------------------------------------------------------------
+  // Phân loại đường dẫn (dùng cho Auth Guard)
+  // ---------------------------------------------------------------------------
+
+  static const List<String> _authPages = <String>[
+    login,
+    register,
+    forgotPassword,
+  ];
+
+  /// Màn hình dành cho người CHƯA đăng nhập (đăng nhập, đăng ký, quên mật khẩu).
+  static bool isAuthPage(String path) => _authPages.contains(path);
+
+  /// Khu vực chỉ dành cho Thí sinh. Trang đăng ký được loại trừ vì công khai.
+  static bool isStudentArea(String path) =>
+      !isAuthPage(path) && _hasPrefix(path, '/student');
+
+  /// Khu vực chỉ dành cho Trọng tài.
+  static bool isJudgeArea(String path) =>
+      _hasPrefix(path, '/cuoc-thi') || _hasPrefix(path, '/trong-tai');
+
+  static bool _hasPrefix(String path, String prefix) =>
+      path == prefix || path.startsWith('$prefix/');
+}
+</file>
+
+<file path="lib/core/router/auth_guard.dart">
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../features/auth/data/auth_repository.dart';
+import '../../features/auth/domain/auth_user.dart';
+import '../network/api_client.dart';
+import 'app_routes.dart';
+
+/// Trạng thái phiên đăng nhập mà router cần biết.
+enum SessionStatus {
+  /// Đang khôi phục phiên từ token đã lưu (màn hình splash).
+  restoring,
+
+  /// Đã đăng nhập.
+  authenticated,
+
+  /// Chưa đăng nhập hoặc phiên đã hết hạn.
+  unauthenticated,
+
+  /// Không khôi phục được vì lỗi mạng/máy chủ; cho phép người dùng thử lại.
+  failed,
+}
+
+/// Theo dõi trạng thái phiên và là `refreshListenable` của `GoRouter`.
+class AuthSessionController extends ChangeNotifier {
+  AuthSessionController(this._repository) {
+    _repository.userListenable.addListener(_handleUserChanged);
+  }
+
+  final AuthRepository _repository;
+
+  SessionStatus _status = SessionStatus.restoring;
+  ApiException? _restoreError;
+  bool _isRestoring = false;
+  bool _isDisposed = false;
+
+  SessionStatus get status => _status;
+
+  AuthUser? get user => _repository.currentUser;
+
+  /// Lỗi của lần khôi phục phiên gần nhất (khi `status == failed`).
+  ApiException? get restoreError => _restoreError;
+
+  /// Khôi phục phiên khi mở app, hoặc thử lại sau lỗi mạng.
+  Future<void> restore() async {
+    if (_isRestoring) {
+      return;
+    }
+
+    _isRestoring = true;
+    _restoreError = null;
+    _setStatus(SessionStatus.restoring);
+
+    try {
+      final AuthUser? restored = await _repository.restoreSession();
+      _setStatus(
+        restored == null
+            ? SessionStatus.unauthenticated
+            : SessionStatus.authenticated,
+      );
+    } on ApiException catch (error) {
+      _restoreError = error;
+      _setStatus(SessionStatus.failed);
+    } catch (_) {
+      _restoreError = const ApiException(
+        message: 'Không thể khôi phục phiên đăng nhập. Vui lòng thử lại.',
+      );
+      _setStatus(SessionStatus.failed);
+    } finally {
+      _isRestoring = false;
+    }
+  }
+
+  /// Bỏ phiên cũ và chuyển sang màn hình đăng nhập (dùng khi khôi phục lỗi).
+  Future<void> discardSession() async {
+    await _repository.logout();
+    _restoreError = null;
+    _setStatus(SessionStatus.unauthenticated);
+  }
+
+  void _handleUserChanged() {
+    // Trong lúc khôi phục, `restore()` sẽ tự đặt trạng thái cuối cùng.
+    if (_isRestoring) {
+      return;
+    }
+    _setStatus(
+      _repository.currentUser == null
+          ? SessionStatus.unauthenticated
+          : SessionStatus.authenticated,
+    );
+  }
+
+  void _setStatus(SessionStatus next) {
+    if (_status == next) {
+      return;
+    }
+    _status = next;
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _repository.userListenable.removeListener(_handleUserChanged);
+    super.dispose();
+  }
+}
+
+/// Màn hình chính tương ứng với từng vai trò.
+String homeRouteFor(UserRole role) {
+  switch (role) {
+    case UserRole.student:
+      return AppRoutes.studentDashboard;
+    case UserRole.judge:
+      return AppRoutes.judgeContests;
+    case UserRole.admin:
+      return AppRoutes.login;
+  }
+}
+
+/// Quy tắc điều hướng của Auth Guard. Hàm thuần, không phụ thuộc Flutter nên
+/// dễ viết unit test. Trả về `null` nghĩa là cho phép vào đường dẫn hiện tại.
+///
+/// - Đang khôi phục/lỗi khôi phục: luôn ở màn hình splash.
+/// - Chưa đăng nhập: chỉ vào được đăng nhập, đăng ký, quên mật khẩu.
+/// - Đã đăng nhập: không vào lại các trang trên; chỉ vào khu vực đúng vai trò.
+String? resolveAuthRedirect({
+  required SessionStatus status,
+  required AuthUser? user,
+  required String location,
+}) {
+  final String path = Uri.parse(location).path;
+
+  switch (status) {
+    case SessionStatus.restoring:
+    case SessionStatus.failed:
+      return path == AppRoutes.splash ? null : AppRoutes.splash;
+
+    case SessionStatus.unauthenticated:
+      return _redirectForGuest(path);
+
+    case SessionStatus.authenticated:
+      if (user == null) {
+        return _redirectForGuest(path);
+      }
+
+      // Ứng dụng chỉ hỗ trợ Thí sinh và Trọng tài.
+      if (user.role != UserRole.student && user.role != UserRole.judge) {
+        return _redirectForGuest(path);
+      }
+
+      final String home = homeRouteFor(user.role);
+
+      if (path == AppRoutes.splash || AppRoutes.isAuthPage(path)) {
+        return home;
+      }
+      if (AppRoutes.isStudentArea(path) && user.role != UserRole.student) {
+        return home;
+      }
+      if (AppRoutes.isJudgeArea(path) && user.role != UserRole.judge) {
+        return home;
+      }
+      return null;
+  }
+}
+
+String? _redirectForGuest(String path) {
+  if (AppRoutes.isAuthPage(path)) {
+    return null;
+  }
+  return AppRoutes.login;
+}
+
+/// Provider `AuthSessionController`. Tự bắt đầu khôi phục phiên ngay khi được
+/// tạo lần đầu.
+final Provider<AuthSessionController> authSessionControllerProvider =
+    Provider<AuthSessionController>((ref) {
+  final AuthSessionController controller = AuthSessionController(
+    ref.watch(authRepositoryProvider),
+  );
+  ref.onDispose(controller.dispose);
+  unawaited(controller.restore());
+  return controller;
+});
+</file>
+
+<file path="lib/core/storage/token_storage.dart">
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../config/env.dart';
+
+/// Lỗi phát sinh khi đọc / ghi kho lưu trữ token an toàn.
+class TokenStorageException implements Exception {
+  const TokenStorageException(this.message, {this.cause});
+
+  final String message;
+  final Object? cause;
+
+  @override
+  String toString() => 'TokenStorageException: $message'
+      '${cause != null ? ' (nguyên nhân: $cause)' : ''}';
+}
+
+/// Lưu trữ AccessToken và RefreshToken bằng `flutter_secure_storage`
+/// (Keychain trên iOS, EncryptedSharedPreferences/Keystore trên Android).
+///
+/// Backend xác thực bằng cookie httpOnly, nên ngoài việc lưu token lớp này còn
+/// dựng sẵn giá trị header `Cookie` để `ApiClient` và Socket.IO sử dụng.
+class TokenStorage {
+  TokenStorage({FlutterSecureStorage? secureStorage})
+      : _storage = secureStorage ??
+            const FlutterSecureStorage(
+              aOptions: AndroidOptions(encryptedSharedPreferences: true),
+              iOptions: IOSOptions(
+                accessibility: KeychainAccessibility.first_unlock,
+              ),
+            );
+
+  static const String _accessTokenKey = 'auth.access_token';
+  static const String _refreshTokenKey = 'auth.refresh_token';
+
+  final FlutterSecureStorage _storage;
+
+  // Bộ nhớ đệm để tránh truy cập Keystore/Keychain ở mỗi request.
+  String? _accessTokenCache;
+  String? _refreshTokenCache;
+  bool _isLoaded = false;
+  Future<void>? _loading;
+
+  // ---------------------------------------------------------------------------
+  // Đọc
+  // ---------------------------------------------------------------------------
+
+  /// Nạp token từ kho an toàn vào bộ nhớ đệm (chỉ thực hiện thật sự một lần).
+  Future<void> init() => _ensureLoaded();
+
+  Future<String?> readAccessToken() async {
+    await _ensureLoaded();
+    return _accessTokenCache;
+  }
+
+  Future<String?> readRefreshToken() async {
+    await _ensureLoaded();
+    return _refreshTokenCache;
+  }
+
+  /// Có token hợp lệ về mặt hình thức để thử khôi phục phiên đăng nhập.
+  /// Chỉ cần còn refreshToken là có thể xin accessToken mới.
+  Future<bool> hasSession() async {
+    await _ensureLoaded();
+    return _isNotBlank(_refreshTokenCache) || _isNotBlank(_accessTokenCache);
+  }
+
+  /// Dựng giá trị header `Cookie` theo đúng tên cookie Backend đang đọc
+  /// (`accessToken`, `refreshToken`). Trả về `null` nếu chưa có token nào.
+  ///
+  /// Socket.IO chỉ cần accessToken nên có thể truyền `includeRefresh: false`.
+  Future<String?> buildCookieHeader({
+    bool includeAccess = true,
+    bool includeRefresh = true,
+  }) async {
+    await _ensureLoaded();
+
+    final List<String> parts = <String>[];
+
+    if (includeAccess && _isNotBlank(_accessTokenCache)) {
+      parts.add('${Env.accessTokenCookieName}=$_accessTokenCache');
+    }
+    if (includeRefresh && _isNotBlank(_refreshTokenCache)) {
+      parts.add('${Env.refreshTokenCookieName}=$_refreshTokenCache');
+    }
+
+    if (parts.isEmpty) {
+      return null;
+    }
+    return parts.join('; ');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Ghi
+  // ---------------------------------------------------------------------------
+
+  /// Lưu token. Tham số nào là `null` thì giữ nguyên giá trị hiện có.
+  Future<void> saveTokens({String? accessToken, String? refreshToken}) async {
+    await _ensureLoaded();
+
+    try {
+      if (accessToken != null) {
+        await _storage.write(key: _accessTokenKey, value: accessToken);
+        _accessTokenCache = accessToken;
+      }
+      if (refreshToken != null) {
+        await _storage.write(key: _refreshTokenKey, value: refreshToken);
+        _refreshTokenCache = refreshToken;
+      }
+    } on PlatformException catch (error) {
+      throw TokenStorageException('Không thể lưu token an toàn.',
+          cause: error);
+    } catch (error) {
+      throw TokenStorageException('Lỗi không xác định khi lưu token.',
+          cause: error);
+    }
+  }
+
+  Future<void> clearAccessToken() async {
+    await _ensureLoaded();
+
+    try {
+      await _storage.delete(key: _accessTokenKey);
+      _accessTokenCache = null;
+    } on PlatformException catch (error) {
+      throw TokenStorageException('Không thể xóa accessToken.', cause: error);
+    } catch (error) {
+      throw TokenStorageException('Lỗi không xác định khi xóa accessToken.',
+          cause: error);
+    }
+  }
+
+  Future<void> clearRefreshToken() async {
+    await _ensureLoaded();
+
+    try {
+      await _storage.delete(key: _refreshTokenKey);
+      _refreshTokenCache = null;
+    } on PlatformException catch (error) {
+      throw TokenStorageException('Không thể xóa refreshToken.', cause: error);
+    } catch (error) {
+      throw TokenStorageException('Lỗi không xác định khi xóa refreshToken.',
+          cause: error);
+    }
+  }
+
+  /// Xóa toàn bộ token (đăng xuất hoặc phiên hết hạn).
+  Future<void> clear() async {
+    // Dù lưu trữ lỗi, bộ nhớ đệm vẫn phải được dọn để request sau không
+    // tiếp tục gửi token cũ.
+    _accessTokenCache = null;
+    _refreshTokenCache = null;
+    _isLoaded = true;
+
+    try {
+      await _storage.delete(key: _accessTokenKey);
+      await _storage.delete(key: _refreshTokenKey);
+    } on PlatformException catch (error) {
+      throw TokenStorageException('Không thể xóa token.', cause: error);
+    } catch (error) {
+      throw TokenStorageException('Lỗi không xác định khi xóa token.',
+          cause: error);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Nội bộ
+  // ---------------------------------------------------------------------------
+
+  Future<void> _ensureLoaded() {
+    if (_isLoaded) {
+      return Future<void>.value();
+    }
+    return _loading ??= _loadFromStorage().whenComplete(() => _loading = null);
+  }
+
+  Future<void> _loadFromStorage() async {
+    try {
+      _accessTokenCache = await _storage.read(key: _accessTokenKey);
+      _refreshTokenCache = await _storage.read(key: _refreshTokenKey);
+    } on PlatformException catch (error) {
+      // Keystore/Keychain có thể bị hỏng (ví dụ sau khi khôi phục máy).
+      // Dữ liệu không đọc được nữa nên xóa sạch để người dùng đăng nhập lại.
+      debugPrint('[TokenStorage] Không đọc được kho an toàn: $error');
+      _accessTokenCache = null;
+      _refreshTokenCache = null;
+      try {
+        await _storage.deleteAll();
+      } catch (deleteError) {
+        debugPrint('[TokenStorage] Không thể dọn kho an toàn: $deleteError');
+      }
+    } catch (error) {
+      debugPrint('[TokenStorage] Lỗi không xác định khi đọc token: $error');
+      _accessTokenCache = null;
+      _refreshTokenCache = null;
+    } finally {
+      _isLoaded = true;
+    }
+  }
+
+  static bool _isNotBlank(String? value) =>
+      value != null && value.trim().isNotEmpty;
+}
+
+/// Provider dùng chung cho toàn app.
+final Provider<TokenStorage> tokenStorageProvider =
+    Provider<TokenStorage>((ref) => TokenStorage());
+</file>
+
+<file path="lib/features/auth/data/auth_api.dart">
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/network/api_client.dart';
+import '../domain/auth_user.dart';
+
+/// Kết quả của `POST /auth/login` và `POST /auth/student-login`.
+///
+/// Backend chỉ trả `{ role, accessToken }` trong body. Token chính thức
+/// (accessToken + refreshToken) nằm ở header `Set-Cookie` và đã được
+/// `ApiClient` tự lưu vào `TokenStorage`.
+class LoginResponse {
+  const LoginResponse({required this.role, this.accessToken});
+
+  final UserRole role;
+
+  /// Bản sao accessToken trong body, chỉ dùng làm phương án dự phòng.
+  final String? accessToken;
+
+  factory LoginResponse.fromJson(Map<String, dynamic> json) {
+    final UserRole? role = UserRole.tryParse(json['role']);
+    if (role == null) {
+      throw const FormatException('Phản hồi đăng nhập thiếu vai trò.');
+    }
+
+    final Object? token = json['accessToken'];
+    return LoginResponse(
+      role: role,
+      accessToken: token is String && token.isNotEmpty ? token : null,
+    );
+  }
+}
+
+/// Gọi các endpoint xác thực của Backend (`/api/auth/...`).
+///
+/// Mọi phương thức ném `ApiException` với thông điệp tiếng Việt khi thất bại.
+class AuthApi {
+  AuthApi(this._client);
+
+  final ApiClient _client;
+
+  static const String _loginPath = '/auth/login';
+  static const String _studentLoginPath = '/auth/student-login';
+  static const String _profilePath = '/auth/profile';
+  static const String _studentProfilePath = '/auth/profile-student';
+  static const String _logoutPath = '/auth/logout';
+
+  /// Đăng nhập Trọng tài (Backend từ chối tài khoản Student ở endpoint này).
+  Future<LoginResponse> login({
+    required String identifier,
+    required String password,
+  }) {
+    return _loginRequest(
+      path: _loginPath,
+      identifier: identifier,
+      password: password,
+    );
+  }
+
+  /// Đăng nhập Thí sinh (Backend từ chối tài khoản không phải Student).
+  Future<LoginResponse> studentLogin({
+    required String identifier,
+    required String password,
+  }) {
+    return _loginRequest(
+      path: _studentLoginPath,
+      identifier: identifier,
+      password: password,
+    );
+  }
+
+  /// `GET /auth/profile` cho mọi vai trò.
+  Future<AuthUser> getProfile() {
+    return _guard<AuthUser>(
+      failureMessage: 'Không thể tải thông tin tài khoản.',
+      action: () async {
+        final ApiResult result = await _client.get(_profilePath);
+        return AuthUser.fromProfileJson(result.dataAsMap);
+      },
+    );
+  }
+
+  /// `GET /auth/profile-student` chỉ dành cho Student: thông tin thí sinh,
+  /// cuộc thi và danh sách trận đấu.
+  Future<StudentProfile> getStudentProfile() {
+    return _guard<StudentProfile>(
+      failureMessage: 'Không thể tải thông tin thí sinh.',
+      action: () async {
+        final ApiResult result = await _client.get(_studentProfilePath);
+        return StudentProfile.fromJson(result.dataAsMap);
+      },
+    );
+  }
+
+  /// `POST /auth/logout`: Backend xóa token trong DB và xóa cookie.
+  Future<void> logout() {
+    return _guard<void>(
+      failureMessage: 'Không thể đăng xuất khỏi máy chủ.',
+      action: () async {
+        await _client.post(_logoutPath);
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Nội bộ
+  // ---------------------------------------------------------------------------
+
+  Future<LoginResponse> _loginRequest({
+    required String path,
+    required String identifier,
+    required String password,
+  }) {
+    return _guard<LoginResponse>(
+      failureMessage: 'Đăng nhập thất bại. Vui lòng thử lại.',
+      action: () async {
+        final ApiResult result = await _client.post(
+          path,
+          data: <String, dynamic>{
+            'identifier': identifier,
+            'password': password,
+          },
+          // Đăng nhập là endpoint công khai: không gắn cookie cũ và không
+          // kích hoạt auto refresh khi sai mật khẩu.
+          requiresAuth: false,
+        );
+        return LoginResponse.fromJson(result.dataAsMap);
+      },
+    );
+  }
+
+  Future<T> _guard<T>({
+    required Future<T> Function() action,
+    required String failureMessage,
+  }) async {
+    try {
+      return await action();
+    } on ApiException {
+      rethrow;
+    } on FormatException catch (error) {
+      throw ApiException(
+        message: 'Dữ liệu máy chủ trả về không hợp lệ: ${error.message}',
+        code: 'INVALID_RESPONSE',
+      );
+    } catch (_) {
+      throw ApiException(message: failureMessage);
+    }
+  }
+}
+
+/// Provider `AuthApi`.
+final Provider<AuthApi> authApiProvider = Provider<AuthApi>(
+  (ref) => AuthApi(ref.watch(apiClientProvider)),
+);
+</file>
+
+<file path="lib/features/auth/data/auth_repository.dart">
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/network/api_client.dart';
+import '../domain/auth_user.dart';
+import 'auth_api.dart';
+
+/// Quản lý phiên đăng nhập: đăng nhập, khôi phục phiên khi mở app, đăng xuất.
+///
+/// Token do `ApiClient` + `TokenStorage` giữ (cơ chế cookie của Backend).
+/// Repository chỉ giữ thông tin người dùng hiện tại ở `userListenable`, để
+/// `go_router` dùng làm `refreshListenable` cho Auth Guard.
+class AuthRepository {
+  AuthRepository({
+    required AuthApi api,
+    required ApiClient apiClient,
+  })  : _api = api,
+        _apiClient = apiClient {
+    _sessionSubscription =
+        _apiClient.onSessionExpired.listen(_handleSessionExpired);
+  }
+
+  final AuthApi _api;
+  final ApiClient _apiClient;
+  final ValueNotifier<AuthUser?> _userNotifier = ValueNotifier<AuthUser?>(null);
+
+  late final StreamSubscription<SessionExpiredReason> _sessionSubscription;
+
+  /// Lý do phiên gần nhất bị kết thúc (để màn hình đăng nhập hiển thị).
+  SessionExpiredReason? lastSessionExpiredReason;
+
+  ValueListenable<AuthUser?> get userListenable => _userNotifier;
+
+  AuthUser? get currentUser => _userNotifier.value;
+
+  bool get isAuthenticated => _userNotifier.value != null;
+
+  // ---------------------------------------------------------------------------
+  // Đăng nhập
+  // ---------------------------------------------------------------------------
+
+  /// Đăng nhập theo vai trò (`student` hoặc `judge`).
+  ///
+  /// Thí sinh: `student-login` -> `profile` -> `profile-student`.
+  /// Trọng tài: `login` -> `profile`.
+  /// Nếu bước nào sau khi đăng nhập thất bại thì phiên bị hủy hoàn toàn.
+  Future<AuthUser> login({
+    required UserRole role,
+    required String identifier,
+    required String password,
+  }) async {
+    if (role != UserRole.student && role != UserRole.judge) {
+      throw const ApiException(
+        message: 'Ứng dụng chỉ hỗ trợ tài khoản Thí sinh và Trọng tài.',
+      );
+    }
+
+    final String trimmedIdentifier = identifier.trim();
+    if (trimmedIdentifier.isEmpty) {
+      throw const ApiException(
+        message: 'Vui lòng nhập tên đăng nhập hoặc email.',
+        fieldErrors: <String, String>{
+          'identifier': 'Vui lòng nhập tên đăng nhập hoặc email',
+        },
+      );
+    }
+    if (password.isEmpty) {
+      throw const ApiException(
+        message: 'Vui lòng nhập mật khẩu.',
+        fieldErrors: <String, String>{'password': 'Vui lòng nhập mật khẩu'},
+      );
+    }
+
+    lastSessionExpiredReason = null;
+    await _clearLocalTokens();
+
+    // Bước 1: gọi đăng nhập. Nếu lỗi ở đây thì chưa có phiên nào trên server.
+    final LoginResponse loginResponse = role == UserRole.student
+        ? await _api.studentLogin(
+            identifier: trimmedIdentifier,
+            password: password,
+          )
+        : await _api.login(identifier: trimmedIdentifier, password: password);
+
+    // Bước 2: từ đây server đã có phiên, mọi lỗi phải hủy phiên đó.
+    try {
+      await _ensureAccessToken(loginResponse.accessToken);
+      _apiClient.markSessionActive();
+
+      final AuthUser user = await _loadUser(expectedRole: role);
+      _userNotifier.value = user;
+      return user;
+    } on ApiException {
+      await _discardServerSession();
+      rethrow;
+    } catch (_) {
+      await _discardServerSession();
+      throw const ApiException(
+        message: 'Đăng nhập thất bại. Vui lòng thử lại.',
+      );
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Khôi phục phiên khi mở app
+  // ---------------------------------------------------------------------------
+
+  /// Trả về người dùng nếu phiên còn hiệu lực, `null` nếu cần đăng nhập lại.
+  /// Gặp lỗi mạng thì ném `ApiException` (không xóa token) để UI cho thử lại.
+  ///
+  /// `ApiClient` tự refresh accessToken khi gặp 401 trong lúc gọi profile.
+  Future<AuthUser?> restoreSession() async {
+    final bool hasSession = await _apiClient.tokenStorage.hasSession();
+    if (!hasSession) {
+      return null;
+    }
+
+    try {
+      final AuthUser user = await _loadUser();
+      _userNotifier.value = user;
+      return user;
+    } on ApiException catch (error) {
+      if (error.isNetworkError) {
+        rethrow;
+      }
+      debugPrint('[AuthRepository] Không thể khôi phục phiên: $error');
+      await _clearLocalTokens();
+      _userNotifier.value = null;
+      return null;
+    }
+  }
+
+  /// Tải lại thông tin người dùng (ví dụ sau khi Admin đổi trận đấu).
+  Future<AuthUser> refreshUser() async {
+    final AuthUser user = await _loadUser();
+    _userNotifier.value = user;
+    return user;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Đăng xuất
+  // ---------------------------------------------------------------------------
+
+  /// Đăng xuất. Luôn xóa token cục bộ dù gọi server thất bại.
+  Future<void> logout() async {
+    try {
+      final bool hasSession = await _apiClient.tokenStorage.hasSession();
+      if (hasSession) {
+        await _api.logout();
+      }
+    } on ApiException catch (error) {
+      debugPrint('[AuthRepository] Đăng xuất phía server thất bại: $error');
+    } finally {
+      await _clearLocalTokens();
+      _userNotifier.value = null;
+    }
+  }
+
+  void dispose() {
+    _sessionSubscription.cancel();
+    _userNotifier.dispose();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Nội bộ
+  // ---------------------------------------------------------------------------
+
+  /// Lấy thông tin tài khoản. Với Student gọi thêm `profile-student`.
+  Future<AuthUser> _loadUser({UserRole? expectedRole}) async {
+    final AuthUser base = await _api.getProfile();
+
+    if (!base.isActive) {
+      throw const ApiException(message: 'Tài khoản đã bị vô hiệu hóa.');
+    }
+
+    if (base.role != UserRole.student && base.role != UserRole.judge) {
+      throw const ApiException(
+        message: 'Ứng dụng chỉ hỗ trợ tài khoản Thí sinh và Trọng tài. '
+            'Vui lòng dùng trang web để quản trị.',
+      );
+    }
+
+    if (expectedRole != null && base.role != expectedRole) {
+      throw ApiException(
+        message: 'Tài khoản này không phải ${expectedRole.label.toLowerCase()}.',
+      );
+    }
+
+    if (base.role == UserRole.student) {
+      final StudentProfile student = await _api.getStudentProfile();
+      return base.copyWith(student: student);
+    }
+
+    return base;
+  }
+
+  /// Bảo đảm đã có accessToken sau khi đăng nhập. Ưu tiên token từ cookie;
+  /// nếu không có thì dùng bản sao trong body.
+  Future<void> _ensureAccessToken(String? bodyToken) async {
+    final storage = _apiClient.tokenStorage;
+
+    // Nếu nhận được token từ body response của API Login
+    if (bodyToken != null && bodyToken.isNotEmpty) {
+      // 1. Lưu accessToken vào Storage
+      await storage.saveTokens(accessToken: bodyToken);
+      
+      // 2. ÉP CẬP NHẬT HEADER AUTHORIZATION TRỰC TIẾP VÀO DIO
+      _apiClient.dio.options.headers['Authorization'] = 'Bearer $bodyToken';
+    } else {
+      final String? current = await storage.readAccessToken();
+      if (current == null || current.isEmpty) {
+        throw const ApiException(
+          message: 'Không nhận được phiên đăng nhập từ máy chủ.',
+        );
+      }
+      _apiClient.dio.options.headers['Authorization'] = 'Bearer $current';
+    }
+  }
+  /// Hủy phiên vừa tạo trên server, rồi xóa token cục bộ.
+  Future<void> _discardServerSession() async {
+    try {
+      await _api.logout();
+    } on ApiException catch (error) {
+      debugPrint('[AuthRepository] Không thể hủy phiên vừa tạo: $error');
+    } finally {
+      await _clearLocalTokens();
+      _userNotifier.value = null;
+    }
+  }
+
+  Future<void> _clearLocalTokens() async {
+    try {
+      await _apiClient.tokenStorage.clear();
+    } catch (error) {
+      debugPrint('[AuthRepository] Không thể xóa token cục bộ: $error');
+    }
+  }
+
+  void _handleSessionExpired(SessionExpiredReason reason) {
+    lastSessionExpiredReason = reason;
+    _userNotifier.value = null;
+  }
+}
+
+/// Provider `AuthRepository`.
+final Provider<AuthRepository> authRepositoryProvider =
+    Provider<AuthRepository>((ref) {
+  final AuthRepository repository = AuthRepository(
+    api: ref.watch(authApiProvider),
+    apiClient: ref.watch(apiClientProvider),
+  );
+  ref.onDispose(repository.dispose);
+  return repository;
+});
+
+/// Thông báo tiếng Việt cho từng lý do phiên bị kết thúc.
+String sessionExpiredMessage(SessionExpiredReason reason) {
+  switch (reason) {
+    case SessionExpiredReason.tokenExpired:
+      return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+    case SessionExpiredReason.loggedInElsewhere:
+      return 'Tài khoản đã được đăng nhập trên thiết bị khác.';
+    case SessionExpiredReason.accountLocked:
+      return 'Tài khoản đã bị khóa hoặc không còn tồn tại.';
+  }
+}
+</file>
+
+<file path="lib/features/auth/data/auth_user.dart">
+/// Vai trò người dùng theo Backend (`Role` trong Prisma).
+enum UserRole {
+  student,
+  judge,
+  admin;
+
+  /// Đọc từ chuỗi Backend trả về (`"Student"`, `"Judge"`, `"Admin"`).
+  static UserRole? tryParse(Object? value) {
+    if (value is! String) {
+      return null;
+    }
+    switch (value.trim().toLowerCase()) {
+      case 'student':
+        return UserRole.student;
+      case 'judge':
+        return UserRole.judge;
+      case 'admin':
+        return UserRole.admin;
+      default:
+        return null;
+    }
+  }
+
+  String get apiValue {
+    switch (this) {
+      case UserRole.student:
+        return 'Student';
+      case UserRole.judge:
+        return 'Judge';
+      case UserRole.admin:
+        return 'Admin';
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case UserRole.student:
+        return 'Thí sinh';
+      case UserRole.judge:
+        return 'Trọng tài';
+      case UserRole.admin:
+        return 'Quản trị viên';
+    }
+  }
+}
+
+/// Trận đấu rút gọn trong thông tin thí sinh.
+class MatchSummary {
+  const MatchSummary({
+    required this.id,
+    required this.name,
+    required this.slug,
+    required this.status,
+    required this.currentQuestion,
+    this.remainingTime,
+  });
+
+  final int id;
+  final String name;
+  final String slug;
+  final String status;
+  final int currentQuestion;
+  final int? remainingTime;
+
+  factory MatchSummary.fromJson(Map<String, dynamic> json) {
+    final int? id = _asInt(json['id']);
+    if (id == null) {
+      throw const FormatException('Trận đấu thiếu id.');
+    }
+    return MatchSummary(
+      id: id,
+      name: _asString(json['name']) ?? '',
+      slug: _asString(json['slug']) ?? '',
+      status: _asString(json['status']) ?? '',
+      currentQuestion: _asInt(json['currentQuestion']) ?? 0,
+      remainingTime: _asInt(json['remainingTime']),
+    );
+  }
+}
+
+/// Thông tin thí sinh (bản ghi `Contestant` + `Student`).
+class ContestantInfo {
+  const ContestantInfo({
+    required this.id,
+    required this.fullName,
+    required this.studentCode,
+    required this.contestId,
+    this.className,
+  });
+
+  final int id;
+  final String fullName;
+  final String studentCode;
+  final int contestId;
+  final String? className;
+
+  factory ContestantInfo.fromJson(Map<String, dynamic> json) {
+    final int? id = _asInt(json['id']);
+    if (id == null) {
+      throw const FormatException('Thí sinh thiếu id.');
+    }
+    return ContestantInfo(
+      id: id,
+      fullName: _asString(json['fullName']) ?? '',
+      studentCode: _asString(json['studentCode']) ?? '',
+      contestId: _asInt(json['contestId']) ?? 0,
+      className: _asString(json['class']),
+    );
+  }
+}
+
+/// Cuộc thi mà thí sinh đang tham gia.
+class ContestInfo {
+  const ContestInfo({
+    required this.id,
+    required this.name,
+    required this.slug,
+  });
+
+  final int id;
+  final String name;
+  final String slug;
+
+  factory ContestInfo.fromJson(Map<String, dynamic> json) {
+    final int? id = _asInt(json['id']);
+    if (id == null) {
+      throw const FormatException('Cuộc thi thiếu id.');
+    }
+    return ContestInfo(
+      id: id,
+      name: _asString(json['name']) ?? '',
+      slug: _asString(json['slug']) ?? '',
+    );
+  }
+}
+
+/// Dữ liệu từ `GET /api/auth/profile-student`.
+class StudentProfile {
+  const StudentProfile({
+    required this.contestant,
+    required this.contest,
+    required this.matches,
+    this.registrationNumber,
+  });
+
+  final ContestantInfo contestant;
+  final ContestInfo contest;
+  final List<MatchSummary> matches;
+
+  /// Số báo danh của thí sinh trong trận đầu tiên (nếu Backend trả về).
+  final int? registrationNumber;
+
+  factory StudentProfile.fromJson(Map<String, dynamic> json) {
+    final Map<String, dynamic>? contestantJson = _asMap(json['contestant']);
+    final Map<String, dynamic>? contestJson = _asMap(json['contest']);
+
+    if (contestantJson == null || contestJson == null) {
+      throw const FormatException('Thiếu thông tin thí sinh hoặc cuộc thi.');
+    }
+
+    final dynamic rawMatches = json['matches'];
+    final List<MatchSummary> matches = <MatchSummary>[];
+    if (rawMatches is List) {
+      for (final dynamic item in rawMatches) {
+        final Map<String, dynamic>? matchJson = _asMap(item);
+        if (matchJson != null) {
+          matches.add(MatchSummary.fromJson(matchJson));
+        }
+      }
+    }
+
+    return StudentProfile(
+      contestant: ContestantInfo.fromJson(contestantJson),
+      contest: ContestInfo.fromJson(contestJson),
+      matches: List<MatchSummary>.unmodifiable(matches),
+      registrationNumber: _asInt(json['registrationNumber']) ??
+          _asInt(contestantJson['registrationNumber']),
+    );
+  }
+}
+
+/// Người dùng đang đăng nhập.
+class AuthUser {
+  const AuthUser({
+    required this.id,
+    required this.username,
+    required this.email,
+    required this.role,
+    required this.isActive,
+    this.student,
+  });
+
+  final int id;
+  final String username;
+  final String email;
+  final UserRole role;
+  final bool isActive;
+
+  /// Chỉ có giá trị khi `role == UserRole.student`.
+  final StudentProfile? student;
+
+  bool get isStudent => role == UserRole.student;
+  bool get isJudge => role == UserRole.judge;
+
+  /// Tên hiển thị: họ tên thí sinh nếu có, ngược lại là username.
+  String get displayName {
+    final String? fullName = student?.contestant.fullName;
+    if (fullName != null && fullName.trim().isNotEmpty) {
+      return fullName;
+    }
+    return username;
+  }
+
+  /// Đọc từ `GET /api/auth/profile`:
+  /// `{ id, username, email, isActive, role }`.
+  factory AuthUser.fromProfileJson(Map<String, dynamic> json) {
+    final int? id = _asInt(json['id']);
+    final UserRole? role = UserRole.tryParse(json['role']);
+
+    if (id == null || role == null) {
+      throw const FormatException('Thông tin tài khoản không đầy đủ.');
+    }
+
+    return AuthUser(
+      id: id,
+      username: _asString(json['username']) ?? '',
+      email: _asString(json['email']) ?? '',
+      role: role,
+      isActive: json['isActive'] != false,
+    );
+  }
+
+  AuthUser copyWith({StudentProfile? student}) {
+    return AuthUser(
+      id: id,
+      username: username,
+      email: email,
+      role: role,
+      isActive: isActive,
+      student: student ?? this.student,
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Hàm đọc dữ liệu an toàn
+// -----------------------------------------------------------------------------
+
+int? _asInt(Object? value) {
+  if (value is int) {
+    return value;
+  }
+  if (value is num) {
+    return value.toInt();
+  }
+  if (value is String) {
+    return int.tryParse(value);
+  }
+  return null;
+}
+
+String? _asString(Object? value) {
+  if (value == null) {
+    return null;
+  }
+  return value.toString();
+}
+
+Map<String, dynamic>? _asMap(Object? value) {
+  if (value is Map<String, dynamic>) {
+    return value;
+  }
+  if (value is Map) {
+    return Map<String, dynamic>.from(value);
+  }
+  return null;
+}
+</file>
+
+<file path="lib/features/auth/domain/auth_user.dart">
+/// Vai trò người dùng theo Backend (`Role` trong Prisma).
+enum UserRole {
+  student,
+  judge,
+  admin;
+
+  /// Đọc từ chuỗi Backend trả về (`"Student"`, `"Judge"`, `"Admin"`).
+  static UserRole? tryParse(Object? value) {
+    if (value is! String) {
+      return null;
+    }
+    switch (value.trim().toLowerCase()) {
+      case 'student':
+        return UserRole.student;
+      case 'judge':
+        return UserRole.judge;
+      case 'admin':
+        return UserRole.admin;
+      default:
+        return null;
+    }
+  }
+
+  String get apiValue {
+    switch (this) {
+      case UserRole.student:
+        return 'Student';
+      case UserRole.judge:
+        return 'Judge';
+      case UserRole.admin:
+        return 'Admin';
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case UserRole.student:
+        return 'Thí sinh';
+      case UserRole.judge:
+        return 'Trọng tài';
+      case UserRole.admin:
+        return 'Quản trị viên';
+    }
+  }
+}
+
+/// Trận đấu rút gọn trong thông tin thí sinh.
+class MatchSummary {
+  const MatchSummary({
+    required this.id,
+    required this.name,
+    required this.slug,
+    required this.status,
+    required this.currentQuestion,
+    this.remainingTime,
+  });
+
+  final int id;
+  final String name;
+  final String slug;
+  final String status;
+  final int currentQuestion;
+  final int? remainingTime;
+
+  factory MatchSummary.fromJson(Map<String, dynamic> json) {
+    final int? id = _asInt(json['id']);
+    if (id == null) {
+      throw const FormatException('Trận đấu thiếu id.');
+    }
+    return MatchSummary(
+      id: id,
+      name: _asString(json['name']) ?? '',
+      slug: _asString(json['slug']) ?? '',
+      status: _asString(json['status']) ?? '',
+      currentQuestion: _asInt(json['currentQuestion']) ?? 0,
+      remainingTime: _asInt(json['remainingTime']),
+    );
+  }
+}
+
+/// Thông tin thí sinh (bản ghi `Contestant` + `Student`).
+class ContestantInfo {
+  const ContestantInfo({
+    required this.id,
+    required this.fullName,
+    required this.studentCode,
+    required this.contestId,
+    this.className,
+  });
+
+  final int id;
+  final String fullName;
+  final String studentCode;
+  final int contestId;
+  final String? className;
+
+  factory ContestantInfo.fromJson(Map<String, dynamic> json) {
+    final int? id = _asInt(json['id']);
+    if (id == null) {
+      throw const FormatException('Thí sinh thiếu id.');
+    }
+    return ContestantInfo(
+      id: id,
+      fullName: _asString(json['fullName']) ?? '',
+      studentCode: _asString(json['studentCode']) ?? '',
+      contestId: _asInt(json['contestId']) ?? 0,
+      className: _asString(json['class']),
+    );
+  }
+}
+
+/// Cuộc thi mà thí sinh đang tham gia.
+class ContestInfo {
+  const ContestInfo({
+    required this.id,
+    required this.name,
+    required this.slug,
+  });
+
+  final int id;
+  final String name;
+  final String slug;
+
+  factory ContestInfo.fromJson(Map<String, dynamic> json) {
+    final int? id = _asInt(json['id']);
+    if (id == null) {
+      throw const FormatException('Cuộc thi thiếu id.');
+    }
+    return ContestInfo(
+      id: id,
+      name: _asString(json['name']) ?? '',
+      slug: _asString(json['slug']) ?? '',
+    );
+  }
+}
+
+/// Dữ liệu từ `GET /api/auth/profile-student`.
+class StudentProfile {
+  const StudentProfile({
+    required this.contestant,
+    required this.contest,
+    required this.matches,
+    this.registrationNumber,
+  });
+
+  final ContestantInfo contestant;
+  final ContestInfo contest;
+  final List<MatchSummary> matches;
+
+  /// Số báo danh của thí sinh trong trận đầu tiên (nếu Backend trả về).
+  final int? registrationNumber;
+
+  factory StudentProfile.fromJson(Map<String, dynamic> json) {
+    final Map<String, dynamic>? contestantJson = _asMap(json['contestant']);
+    final Map<String, dynamic>? contestJson = _asMap(json['contest']);
+
+    if (contestantJson == null || contestJson == null) {
+      throw const FormatException('Thiếu thông tin thí sinh hoặc cuộc thi.');
+    }
+
+    final dynamic rawMatches = json['matches'];
+    final List<MatchSummary> matches = <MatchSummary>[];
+    if (rawMatches is List) {
+      for (final dynamic item in rawMatches) {
+        final Map<String, dynamic>? matchJson = _asMap(item);
+        if (matchJson != null) {
+          matches.add(MatchSummary.fromJson(matchJson));
+        }
+      }
+    }
+
+    return StudentProfile(
+      contestant: ContestantInfo.fromJson(contestantJson),
+      contest: ContestInfo.fromJson(contestJson),
+      matches: List<MatchSummary>.unmodifiable(matches),
+      registrationNumber: _asInt(json['registrationNumber']) ??
+          _asInt(contestantJson['registrationNumber']),
+    );
+  }
+}
+
+/// Người dùng đang đăng nhập.
+class AuthUser {
+  const AuthUser({
+    required this.id,
+    required this.username,
+    required this.email,
+    required this.role,
+    required this.isActive,
+    this.student,
+  });
+
+  final int id;
+  final String username;
+  final String email;
+  final UserRole role;
+  final bool isActive;
+
+  /// Chỉ có giá trị khi `role == UserRole.student`.
+  final StudentProfile? student;
+
+  bool get isStudent => role == UserRole.student;
+  bool get isJudge => role == UserRole.judge;
+
+  /// Tên hiển thị: họ tên thí sinh nếu có, ngược lại là username.
+  String get displayName {
+    final String? fullName = student?.contestant.fullName;
+    if (fullName != null && fullName.trim().isNotEmpty) {
+      return fullName;
+    }
+    return username;
+  }
+
+  /// Đọc từ `GET /api/auth/profile`:
+  /// `{ id, username, email, isActive, role }`.
+  factory AuthUser.fromProfileJson(Map<String, dynamic> json) {
+    final int? id = _asInt(json['id']);
+    final UserRole? role = UserRole.tryParse(json['role']);
+
+    if (id == null || role == null) {
+      throw const FormatException('Thông tin tài khoản không đầy đủ.');
+    }
+
+    return AuthUser(
+      id: id,
+      username: _asString(json['username']) ?? '',
+      email: _asString(json['email']) ?? '',
+      role: role,
+      isActive: json['isActive'] != false,
+    );
+  }
+
+  AuthUser copyWith({StudentProfile? student}) {
+    return AuthUser(
+      id: id,
+      username: username,
+      email: email,
+      role: role,
+      isActive: isActive,
+      student: student ?? this.student,
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Hàm đọc dữ liệu an toàn
+// -----------------------------------------------------------------------------
+
+int? _asInt(Object? value) {
+  if (value is int) {
+    return value;
+  }
+  if (value is num) {
+    return value.toInt();
+  }
+  if (value is String) {
+    return int.tryParse(value);
+  }
+  return null;
+}
+
+String? _asString(Object? value) {
+  if (value == null) {
+    return null;
+  }
+  return value.toString();
+}
+
+Map<String, dynamic>? _asMap(Object? value) {
+  if (value is Map<String, dynamic>) {
+    return value;
+  }
+  if (value is Map) {
+    return Map<String, dynamic>.from(value);
+  }
+  return null;
+}
+</file>
+
+<file path="lib/features/auth/presentation/login_screen.dart">
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../core/config/env.dart';
+import '../../../core/network/api_client.dart';
+import '../../../core/router/app_routes.dart';
+import '../../../core/router/auth_guard.dart';
+import '../data/auth_repository.dart';
+import '../domain/auth_user.dart';
+
+/// Màn hình đăng nhập dùng chung cho Thí sinh (Student) và Trọng tài (Judge).
+class LoginScreen extends ConsumerStatefulWidget {
+  const LoginScreen({
+    super.key,
+    this.initialRole = UserRole.student,
+    this.initialMessage,
+  });
+
+  /// Vai trò được chọn sẵn khi mở màn hình.
+  final UserRole initialRole;
+
+  /// Thông báo hiển thị phía trên form (ví dụ lý do phiên hết hạn).
+  final String? initialMessage;
+
+  @override
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _identifierController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final FocusNode _passwordFocusNode = FocusNode();
+
+  late UserRole _role;
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  String? _errorMessage;
+  Map<String, String> _fieldErrors = <String, String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _role = widget.initialRole == UserRole.judge
+        ? UserRole.judge
+        : UserRole.student;
+    _errorMessage = widget.initialMessage ?? _pendingSessionMessage();
+  }
+
+  @override
+  void dispose() {
+    _identifierController.dispose();
+    _passwordController.dispose();
+    _passwordFocusNode.dispose();
+    super.dispose();
+  }
+
+  /// Nếu vừa bị đá khỏi phiên (hết hạn, đăng nhập nơi khác...) thì báo lý do.
+  String? _pendingSessionMessage() {
+    final SessionExpiredReason? reason =
+        ref.read(authRepositoryProvider).lastSessionExpiredReason;
+    if (reason == null) {
+      return null;
+    }
+    return sessionExpiredMessage(reason);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Xử lý đăng nhập
+  // ---------------------------------------------------------------------------
+
+  Future<void> _submit() async {
+    if (_isLoading) {
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+
+    setState(() {
+      _errorMessage = null;
+      _fieldErrors = <String, String>{};
+    });
+
+    final bool isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final AuthUser user = await ref.read(authRepositoryProvider).login(
+            role: _role,
+            identifier: _identifierController.text,
+            password: _passwordController.text,
+          );
+
+      if (!mounted) {
+        return;
+      }
+
+      TextInput.finishAutofillContext();
+      context.go(homeRouteFor(user.role));
+    } on ApiException catch (error) {
+      _showApiError(error);
+    } catch (_) {
+      _showApiError(
+        const ApiException(message: 'Đăng nhập thất bại. Vui lòng thử lại.'),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showApiError(ApiException error) {
+    if (!mounted) {
+      return;
+    }
+
+    // Lỗi theo từng trường hiển thị ngay dưới ô nhập tương ứng.
+    final Map<String, String> fieldErrors = <String, String>{};
+    for (final String field in <String>['identifier', 'password']) {
+      final String? message = error.fieldErrors[field];
+      if (message != null && message.isNotEmpty) {
+        fieldErrors[field] = message;
+      }
+    }
+
+    setState(() {
+      _fieldErrors = fieldErrors;
+      // Chỉ hiện banner khi lỗi không gắn được vào ô nhập nào.
+      _errorMessage = fieldErrors.isEmpty ? error.message : null;
+    });
+  }
+
+  void _clearFieldError(String field) {
+    if (_fieldErrors.containsKey(field) || _errorMessage != null) {
+      setState(() {
+        _fieldErrors = Map<String, String>.from(_fieldErrors)..remove(field);
+        _errorMessage = null;
+      });
+    }
+  }
+
+  void _onRoleChanged(Set<UserRole> selection) {
+    if (_isLoading || selection.isEmpty) {
+      return;
+    }
+    setState(() {
+      _role = selection.first;
+      _errorMessage = null;
+      _fieldErrors = <String, String>{};
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Giao diện
+  // ---------------------------------------------------------------------------
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colors = theme.colorScheme;
+
+    return Scaffold(
+      backgroundColor: colors.primaryContainer,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+                  child: Form(
+                    key: _formKey,
+                    child: AutofillGroup(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          _buildHeader(theme),
+                          const SizedBox(height: 24),
+                          _buildRoleSelector(),
+                          const SizedBox(height: 20),
+                          if (_errorMessage != null) ...<Widget>[
+                            _buildErrorBanner(theme),
+                            const SizedBox(height: 16),
+                          ],
+                          _buildIdentifierField(),
+                          const SizedBox(height: 16),
+                          _buildPasswordField(),
+                          const SizedBox(height: 8),
+                          _buildForgotPasswordLink(),
+                          const SizedBox(height: 12),
+                          _buildSubmitButton(),
+                          if (_role == UserRole.student)
+                            _buildRegisterLink(theme),
+                          if (kDebugMode) _buildDebugFooter(theme),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(ThemeData theme) {
+    return Column(
+      children: <Widget>[
+        Icon(
+          Icons.notifications_active_rounded,
+          size: 56,
+          color: theme.colorScheme.primary,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Rung chuông vàng',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Đăng nhập để tiếp tục',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRoleSelector() {
+    return SegmentedButton<UserRole>(
+      showSelectedIcon: false,
+      segments: const <ButtonSegment<UserRole>>[
+        ButtonSegment<UserRole>(
+          value: UserRole.student,
+          label: Text('Thí sinh'),
+          icon: Icon(Icons.school_outlined),
+        ),
+        ButtonSegment<UserRole>(
+          value: UserRole.judge,
+          label: Text('Trọng tài'),
+          icon: Icon(Icons.gavel_outlined),
+        ),
+      ],
+      selected: <UserRole>{_role},
+      onSelectionChanged: _isLoading ? null : _onRoleChanged,
+    );
+  }
+
+  Widget _buildErrorBanner(ThemeData theme) {
+    final ColorScheme colors = theme.colorScheme;
+
+    return Semantics(
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: colors.errorContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Icon(Icons.error_outline, color: colors.onErrorContainer),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _errorMessage ?? '',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colors.onErrorContainer,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIdentifierField() {
+    return TextFormField(
+      controller: _identifierController,
+      enabled: !_isLoading,
+      keyboardType: TextInputType.emailAddress,
+      textInputAction: TextInputAction.next,
+      autofillHints: const <String>[
+        AutofillHints.username,
+        AutofillHints.email,
+      ],
+      autocorrect: false,
+      enableSuggestions: false,
+      decoration: InputDecoration(
+        labelText: 'Tên đăng nhập hoặc email',
+        prefixIcon: const Icon(Icons.person_outline),
+        border: const OutlineInputBorder(),
+        errorText: _fieldErrors['identifier'],
+      ),
+      validator: (String? value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Vui lòng nhập tên đăng nhập hoặc email';
+        }
+        return null;
+      },
+      onChanged: (_) => _clearFieldError('identifier'),
+      onFieldSubmitted: (_) => _passwordFocusNode.requestFocus(),
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return TextFormField(
+      controller: _passwordController,
+      focusNode: _passwordFocusNode,
+      enabled: !_isLoading,
+      obscureText: _obscurePassword,
+      keyboardType: TextInputType.visiblePassword,
+      textInputAction: TextInputAction.done,
+      autofillHints: const <String>[AutofillHints.password],
+      autocorrect: false,
+      enableSuggestions: false,
+      decoration: InputDecoration(
+        labelText: 'Mật khẩu',
+        prefixIcon: const Icon(Icons.lock_outline),
+        border: const OutlineInputBorder(),
+        errorText: _fieldErrors['password'],
+        suffixIcon: IconButton(
+          tooltip: _obscurePassword ? 'Hiện mật khẩu' : 'Ẩn mật khẩu',
+          icon: Icon(
+            _obscurePassword
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
+          ),
+          onPressed: () {
+            setState(() => _obscurePassword = !_obscurePassword);
+          },
+        ),
+      ),
+      validator: (String? value) {
+        if (value == null || value.isEmpty) {
+          return 'Vui lòng nhập mật khẩu';
+        }
+        return null;
+      },
+      onChanged: (_) => _clearFieldError('password'),
+      onFieldSubmitted: (_) => _submit(),
+    );
+  }
+
+  Widget _buildForgotPasswordLink() {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: TextButton(
+        onPressed: _isLoading
+            ? null
+            : () => context.push(AppRoutes.forgotPassword),
+        child: const Text('Quên mật khẩu?'),
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return FilledButton(
+      onPressed: _isLoading ? null : _submit,
+      style: FilledButton.styleFrom(
+        minimumSize: const Size.fromHeight(52),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: _isLoading
+          ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            )
+          : const Text(
+              'Đăng nhập',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+    );
+  }
+
+  Widget _buildRegisterLink(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Text('Chưa có tài khoản?', style: theme.textTheme.bodyMedium),
+          TextButton(
+            onPressed: _isLoading
+                ? null
+                : () => context.push(AppRoutes.register),
+            child: const Text('Đăng ký'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Hiển thị địa chỉ Backend đang dùng, chỉ trong chế độ debug, để dễ kiểm
+  /// tra khi chạy trên thiết bị thật trong mạng LAN.
+  Widget _buildDebugFooter(ThemeData theme) {
+    String serverText;
+    try {
+      serverText = Env.serverUrl;
+    } on StateError catch (error) {
+      serverText = error.message.toString();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Text(
+        'Server: $serverText',
+        textAlign: TextAlign.center,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+</file>
+
+<file path="lib/features/auth/presentation/register_screen.dart">
+
+</file>
+
+<file path="lib/features/auth/presentation/splash_screen.dart">
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/router/auth_guard.dart';
+
+/// Màn hình chờ khi app khôi phục phiên đăng nhập từ token đã lưu.
+///
+/// Khi khôi phục xong, Auth Guard tự chuyển sang màn hình chính hoặc đăng nhập.
+/// Nếu lỗi mạng, màn hình cho phép thử lại hoặc đăng nhập bằng tài khoản khác.
+class SplashScreen extends ConsumerWidget {
+  const SplashScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AuthSessionController controller =
+        ref.watch(authSessionControllerProvider);
+    final ThemeData theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: theme.colorScheme.primaryContainer,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ListenableBuilder(
+              listenable: controller,
+              builder: (BuildContext context, Widget? child) {
+                if (controller.status == SessionStatus.failed) {
+                  return _SplashError(controller: controller);
+                }
+                return const _SplashLoading();
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SplashLoading extends StatelessWidget {
+  const _SplashLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(
+          Icons.notifications_active_rounded,
+          size: 72,
+          color: theme.colorScheme.primary,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Rung chuông vàng',
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 28),
+        const CircularProgressIndicator(),
+        const SizedBox(height: 16),
+        Text(
+          'Đang kiểm tra phiên đăng nhập...',
+          style: theme.textTheme.bodyMedium,
+        ),
+      ],
+    );
+  }
+}
+
+class _SplashError extends StatelessWidget {
+  const _SplashError({required this.controller});
+
+  final AuthSessionController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final String message = controller.restoreError?.message ??
+        'Không thể kết nối đến máy chủ. Vui lòng thử lại.';
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 360),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Icon(
+            Icons.cloud_off_rounded,
+            size: 64,
+            color: theme.colorScheme.error,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Không thể khôi phục phiên',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: controller.restore,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Thử lại'),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: controller.discardSession,
+            child: const Text('Đăng nhập bằng tài khoản khác'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+</file>
+
+<file path="lib/features/match/data/match_repository.dart">
+
+</file>
+
+<file path="lib/features/match/presentation/match_screen.dart">
+
+</file>
+
+<file path="lib/features/match/presentation/waiting_room_screen.dart">
+
+</file>
+
+<file path="lib/features/profile/presentation/profile_screen.dart">
+
+</file>
+
+<file path="lib/features/rescue/presentation/rescue_screen.dart">
+
+</file>
+
+<file path="lib/main.dart">
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'core/router/app_router.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const ProviderScope(child: RungChuongVangApp()));
+}
+
+class RungChuongVangApp extends ConsumerWidget {
+  const RungChuongVangApp({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+
+    return MaterialApp.router(
+      title: 'Rung chuông vàng',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFF9A825)),
+      ),
+      routerConfig: router,
+    );
+  }
+}
+</file>
+
+<file path="pubspec.yaml">
+name: contests_mobile_app
+description: Mobile App Rung Chuong Vang dành cho Student và Judge
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.4.0
+  flutter_secure_storage: ^9.0.0
+  flutter_riverpod: ^2.5.0
+  socket_io_client: ^2.0.3
+  go_router: ^14.0.0
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+</file>
+
+</files>

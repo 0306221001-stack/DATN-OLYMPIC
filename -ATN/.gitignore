@@ -1,0 +1,31 @@
+# Bí mật / khóa ký
+.env
+*.env
+!.env.example
+key.properties
+*.jks
+*.keystore
+*.pem
+backup/
+
+# Sản phẩm build, thư viện cài lại được
+node_modules/
+build/
+dist/
+.dart_tool/
+.gradle/
+logs/
+
+# File nặng / dữ liệu nộp bài / công cụ cục bộ
+NOP_BAI/
+tools/
+*.apk
+*.zip
+*.rar
+contests_db*.sql
+review-report.html
+lenh_chay_chtrinh.txt
+
+# Báo cáo cá nhân và file tạm của Word
+*.docx
+~$*

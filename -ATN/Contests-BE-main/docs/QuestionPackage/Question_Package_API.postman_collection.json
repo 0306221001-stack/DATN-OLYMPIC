@@ -1,0 +1,570 @@
+{
+  "info": {
+    "name": "Question Package API",
+    "description": "Complete CRUD operations for Question Package management in the Contest Backend system",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api/question-packages",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Get All Question Packages",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}?page=1&limit=10&sortBy=createdAt&sortOrder=desc",
+          "host": ["{{baseUrl}}"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1",
+              "description": "Page number for pagination"
+            },
+            {
+              "key": "limit",
+              "value": "10",
+              "description": "Number of items per page (max 100)"
+            },
+            {
+              "key": "search",
+              "value": "",
+              "description": "Search by package name",
+              "disabled": true
+            },
+            {
+              "key": "isActive",
+              "value": "",
+              "description": "Filter by active status (true/false)",
+              "disabled": true
+            },
+            {
+              "key": "sortBy",
+              "value": "createdAt",
+              "description": "Sort field: name, createdAt, updatedAt"
+            },
+            {
+              "key": "sortOrder",
+              "value": "desc",
+              "description": "Sort order: asc or desc"
+            }
+          ]
+        },
+        "description": "Get a paginated list of question packages with optional filtering and sorting."
+      },
+      "response": [
+        {
+          "name": "Success - Get All Question Packages",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}?page=1&limit=5",
+              "host": ["{{baseUrl}}"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Lấy danh sách gói câu hỏi thành công\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"name\": \"Gói câu hỏi Bán kết\",\n      \"isActive\": true,\n      \"questionDetailsCount\": 15,\n      \"matchesCount\": 5,\n      \"createdAt\": \"2025-06-04T16:48:03.000Z\",\n      \"updatedAt\": \"2025-06-04T16:48:03.000Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 5,\n    \"total\": 10,\n    \"totalPages\": 2,\n    \"hasNext\": true,\n    \"hasPrev\": false\n  },\n  \"timestamp\": \"2025-06-07T00:45:00.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "2. Get Question Package by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["1"]
+        },
+        "description": "Get detailed information about a specific question package including related questions and matches."
+      },
+      "response": [
+        {
+          "name": "Success - Get Question Package by ID",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["1"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Lấy thông tin gói câu hỏi thành công\",\n  \"data\": {\n    \"id\": 1,\n    \"name\": \"Gói câu hỏi Bán kết\",\n    \"isActive\": true,\n    \"questionDetailsCount\": 15,\n    \"matchesCount\": 5,\n    \"createdAt\": \"2025-06-04T16:48:03.000Z\",\n    \"updatedAt\": \"2025-06-04T16:48:03.000Z\",\n    \"questionDetails\": [\n      {\n        \"questionOrder\": 1,\n        \"isActive\": true,\n        \"question\": {\n          \"id\": 101,\n          \"plainText\": \"Câu hỏi về khoa học\",\n          \"questionType\": \"multiple_choice\",\n          \"difficulty\": \"Alpha\"\n        }\n      }\n    ],\n    \"matches\": [\n      {\n        \"id\": 201,\n        \"name\": \"Trận bán kết 1\",\n        \"startTime\": \"2025-06-10T10:00:00.000Z\",\n        \"endTime\": \"2025-06-10T12:00:00.000Z\"\n      }\n    ]\n  },\n  \"timestamp\": \"2025-06-07T00:45:00.000Z\"\n}"
+        },
+        {
+          "name": "Error - Question Package Not Found",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/999",
+              "host": ["{{baseUrl}}"],
+              "path": ["999"]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"message\": \"Không tìm thấy gói câu hỏi\",\n  \"error\": {\n    \"code\": \"QUESTION_PACKAGE_NOT_FOUND\",\n    \"details\": \"Question package with ID 999 not found\"\n  },\n  \"timestamp\": \"2025-06-07T00:45:00.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "3. Create Question Package",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Gói câu hỏi Vòng loại\",\n  \"isActive\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}",
+          "host": ["{{baseUrl}}"]
+        },
+        "description": "Create a new question package."
+      },
+      "response": [
+        {
+          "name": "Success - Create Question Package",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gói câu hỏi Vòng loại\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Tạo gói câu hỏi thành công\",\n  \"data\": {\n    \"id\": 16,\n    \"name\": \"Gói câu hỏi Vòng loại\",\n    \"isActive\": true,\n    \"createdAt\": \"2025-06-07T00:45:00.000Z\",\n    \"updatedAt\": \"2025-06-07T00:45:00.000Z\"\n  },\n  \"timestamp\": \"2025-06-07T00:45:00.000Z\"\n}"
+        },
+        {
+          "name": "Error - Validation Error",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ab\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"message\": \"Dữ liệu không hợp lệ\",\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"details\": [\n      {\n        \"field\": \"name\",\n        \"message\": \"Tên gói câu hỏi phải có ít nhất 3 ký tự\"\n      }\n    ]\n  },\n  \"timestamp\": \"2025-06-07T00:45:00.000Z\"\n}"
+        },
+        {
+          "name": "Error - Name Already Exists",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gói câu hỏi Bán kết\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": ["{{baseUrl}}"]
+            }
+          },
+          "status": "Conflict",
+          "code": 409,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"message\": \"Tên gói câu hỏi đã tồn tại\",\n  \"error\": {\n    \"code\": \"QUESTION_PACKAGE_NAME_EXISTS\",\n    \"details\": \"A question package with this name already exists\"\n  },\n  \"timestamp\": \"2025-06-07T00:45:00.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "4. Update Question Package",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Gói câu hỏi Vòng loại - Cập nhật\",\n  \"isActive\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/16",
+          "host": ["{{baseUrl}}"],
+          "path": ["16"]
+        },
+        "description": "Update an existing question package."
+      },
+      "response": [
+        {
+          "name": "Success - Update Question Package",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gói câu hỏi Vòng loại - Cập nhật\",\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/16",
+              "host": ["{{baseUrl}}"],
+              "path": ["16"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Cập nhật gói câu hỏi thành công\",\n  \"data\": {\n    \"id\": 16,\n    \"name\": \"Gói câu hỏi Vòng loại - Cập nhật\",\n    \"isActive\": false,\n    \"createdAt\": \"2025-06-07T00:45:00.000Z\",\n    \"updatedAt\": \"2025-06-07T00:46:00.000Z\"\n  },\n  \"timestamp\": \"2025-06-07T00:46:00.000Z\"\n}"
+        },
+        {
+          "name": "Error - Question Package Not Found",
+          "originalRequest": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Package\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/999",
+              "host": ["{{baseUrl}}"],
+              "path": ["999"]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"message\": \"Không tìm thấy gói câu hỏi\",\n  \"error\": {\n    \"code\": \"QUESTION_PACKAGE_NOT_FOUND\",\n    \"details\": \"Question package with ID 999 not found\"\n  },\n  \"timestamp\": \"2025-06-07T00:46:00.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "5. Delete Question Package (Soft Delete)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/16",
+          "host": ["{{baseUrl}}"],
+          "path": ["16"]
+        },
+        "description": "Soft delete a question package by setting isActive to false."
+      },
+      "response": [
+        {
+          "name": "Success - Delete Question Package",
+          "originalRequest": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/16",
+              "host": ["{{baseUrl}}"],
+              "path": ["16"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Xóa gói câu hỏi thành công\",\n  \"data\": null,\n  \"timestamp\": \"2025-06-07T00:46:00.000Z\"\n}"
+        },
+        {
+          "name": "Error - Question Package Not Found",
+          "originalRequest": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/999",
+              "host": ["{{baseUrl}}"],
+              "path": ["999"]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": false,\n  \"message\": \"Không tìm thấy gói câu hỏi\",\n  \"error\": {\n    \"code\": \"QUESTION_PACKAGE_NOT_FOUND\",\n    \"details\": \"Question package with ID 999 not found\"\n  },\n  \"timestamp\": \"2025-06-07T00:46:00.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "6. Get Active Question Packages",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/active",
+          "host": ["{{baseUrl}}"],
+          "path": ["active"]
+        },
+        "description": "Get a simple list of active question packages (for dropdowns/selects)."
+      },
+      "response": [
+        {
+          "name": "Success - Get Active Question Packages",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/active",
+              "host": ["{{baseUrl}}"],
+              "path": ["active"]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Lấy danh sách gói câu hỏi hoạt động thành công\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"name\": \"Gói câu hỏi Bán kết\"\n    },\n    {\n      \"id\": 2,\n      \"name\": \"Gói câu hỏi Chung kết\"\n    }\n  ],\n  \"timestamp\": \"2025-06-07T00:46:00.000Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "7. Test Search and Filter",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}?page=1&limit=5&search=gói&isActive=true&sortBy=name&sortOrder=asc",
+          "host": ["{{baseUrl}}"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "5"
+            },
+            {
+              "key": "search",
+              "value": "gói"
+            },
+            {
+              "key": "isActive",
+              "value": "true"
+            },
+            {
+              "key": "sortBy",
+              "value": "name"
+            },
+            {
+              "key": "sortOrder",
+              "value": "asc"
+            }
+          ]
+        },
+        "description": "Test search and filtering functionality with multiple query parameters."
+      },
+      "response": [
+        {
+          "name": "Success - Search and Filter",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}?page=1&limit=5&search=gói&isActive=true&sortBy=name&sortOrder=asc",
+              "host": ["{{baseUrl}}"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "search",
+                  "value": "gói"
+                },
+                {
+                  "key": "isActive",
+                  "value": "true"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "name"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "asc"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": "{\n  \"success\": true,\n  \"message\": \"Lấy danh sách gói câu hỏi thành công\",\n  \"data\": [\n    {\n      \"id\": 7,\n      \"name\": \"Gói câu hỏi Bán kết\",\n      \"isActive\": true,\n      \"questionDetailsCount\": 15,\n      \"matchesCount\": 5,\n      \"createdAt\": \"2025-06-04T16:48:03.000Z\",\n      \"updatedAt\": \"2025-06-04T16:48:03.000Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 5,\n    \"total\": 8,\n    \"totalPages\": 2,\n    \"hasNext\": true,\n    \"hasPrev\": false\n  },\n  \"timestamp\": \"2025-06-07T00:47:00.000Z\"\n}"
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}
