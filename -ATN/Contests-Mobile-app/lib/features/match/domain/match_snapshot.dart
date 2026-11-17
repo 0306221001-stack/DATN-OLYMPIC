@@ -14,7 +14,12 @@ class MatchSnapshot {
     required this.answeredOrders,
     this.correctCount = 0,
     this.contestantNotStarted = false,
+    this.questionVisible,
   });
+
+  /// Admin đã chiếu câu hỏi lên màn hình chưa. `null` khi Backend cũ chưa gửi
+  /// (khi đó app quay về cách đoán cũ theo đồng hồ).
+  final bool? questionVisible;
 
   /// Thí sinh vẫn ở `not_started` dù trận đã chạy (vào muộn): Backend từ chối
   /// nhận đáp án cho tới khi thí sinh gửi `student:confirmStart`.
@@ -69,6 +74,7 @@ class MatchSnapshot {
           parseContestantStatus(JsonRead.asString(json['contestantStatus'])),
       contestantNotStarted:
           JsonRead.asString(json['contestantStatus']) == 'not_started',
+      questionVisible: JsonRead.asBool(matchData['questionVisible']),
       answeredOrders: Set<int>.unmodifiable(answered),
       correctCount: correct,
     );

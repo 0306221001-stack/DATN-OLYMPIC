@@ -218,7 +218,12 @@ class MatchLiveState {
     this.answeredCount,
     this.correctCount,
     this.matchInProgress = false,
+    this.pendingOrder,
   });
+
+  /// Số câu Admin vừa chọn nhưng chưa chiếu (màn hình "Chờ câu hỏi"); `null`
+  /// khi chưa biết.
+  final int? pendingOrder;
 
   /// Đang vào phòng thi lần đầu.
   final bool isLoading;
@@ -305,6 +310,8 @@ class MatchLiveState {
     int? answeredCount,
     int? correctCount,
     bool? matchInProgress,
+    int? pendingOrder,
+    bool clearPendingOrder = false,
   }) {
     return MatchLiveState(
       isLoading: isLoading ?? this.isLoading,
@@ -329,6 +336,7 @@ class MatchLiveState {
       answeredCount: answeredCount ?? this.answeredCount,
       correctCount: correctCount ?? this.correctCount,
       matchInProgress: matchInProgress ?? this.matchInProgress,
+      pendingOrder: clearPendingOrder ? null : (pendingOrder ?? this.pendingOrder),
     );
   }
 }

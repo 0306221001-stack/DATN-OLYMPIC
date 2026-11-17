@@ -199,6 +199,8 @@ export interface ResultResponse {
   matchId: number;
   isCorrect: boolean;
   questionOrder: number;
+  /** Đáp án thí sinh đã nộp qua app (nếu có). */
+  answer?: string | null;
   createdAt: Date;
   updatedAt: Date;
   contestant?: {

@@ -285,6 +285,38 @@ void main() {
     expect(harness.gateway.leaveCalls, 1);
   });
 
+  testWidgets('mỗi lần Admin chọn câu mới thì hiện màn chờ, bấm Show mới hiện câu',
+      (tester) async {
+    final Harness harness = Harness();
+    await settle(tester);
+
+    harness.gateway.events
+        .add(const QuestionShownEvent(question: question1, remainingTime: 60));
+    await settle(tester);
+    expect(harness.state.question?.order, 1);
+    harness.controller.selectAnswer('2x');
+
+    // Admin chọn câu 2: bỏ câu cũ, hiện "Chờ câu hỏi số 2", không lộ nội dung.
+    harness.gateway.events.add(const QuestionPendingEvent(order: 2));
+    await settle(tester);
+    expect(harness.state.question, isNull);
+    expect(harness.state.phase, MatchPhase.waiting);
+    expect(harness.state.pendingOrder, 2);
+    expect(harness.state.selectedAnswer, isEmpty);
+    expect(harness.state.hasSubmitted, isFalse);
+    expect(harness.state.matchInProgress, isTrue);
+
+    // Admin bấm Show: câu hỏi mới hiện ra, hết trạng thái chờ.
+    harness.gateway.events
+        .add(const QuestionShownEvent(question: question2, remainingTime: 60));
+    await settle(tester);
+    expect(harness.state.phase, MatchPhase.running);
+    expect(harness.state.question?.order, 2);
+    expect(harness.state.pendingOrder, isNull);
+
+    harness.dispose();
+  });
+
   testWidgets('hiện câu hỏi nhưng đồng hồ chưa chạy khi Admin chưa Play',
       (tester) async {
     final Harness harness = Harness();
@@ -560,6 +592,53 @@ void main() {
     expect(harness.state.question?.order, 1);
     expect(harness.state.hasSubmitted, isTrue);
     expect(harness.state.isTimerActive, isFalse);
+
+    harness.dispose();
+  });
+
+  testWidgets(
+      'vào phòng khi Admin chưa chiếu câu hỏi thì không lộ câu hỏi dù còn giờ',
+      (tester) async {
+    // Đúng như dữ liệu thật: trận ongoing, câu 1, remainingTime mặc định 20
+    // nhưng màn chiếu vẫn là background (Admin chưa chiếu gì).
+    final FakeGateway gateway = FakeGateway()
+      ..snapshot = const MatchSnapshot(
+        matchId: 2,
+        matchName: 'Vòng loại - Trận 2',
+        status: 'ongoing',
+        currentQuestion: 1,
+        remainingTime: 20,
+        contestantStatus: ContestantPlayStatus.playing,
+        answeredOrders: <int>{},
+        questionVisible: false,
+      );
+    final Harness harness = Harness(gateway: gateway);
+    await settle(tester);
+
+    expect(harness.state.question, isNull);
+    expect(harness.state.phase, MatchPhase.waiting);
+
+    harness.dispose();
+  });
+
+  testWidgets('Admin đã chiếu câu hỏi thì vào phòng muộn vẫn thấy câu hỏi',
+      (tester) async {
+    final FakeGateway gateway = FakeGateway()
+      ..snapshot = const MatchSnapshot(
+        matchId: 2,
+        matchName: 'Vòng loại - Trận 2',
+        status: 'ongoing',
+        currentQuestion: 1,
+        remainingTime: 20,
+        contestantStatus: ContestantPlayStatus.playing,
+        answeredOrders: <int>{},
+        questionVisible: true,
+      );
+    final Harness harness = Harness(gateway: gateway);
+    await settle(tester);
+
+    expect(harness.state.phase, MatchPhase.running);
+    expect(harness.state.question?.order, 1);
 
     harness.dispose();
   });

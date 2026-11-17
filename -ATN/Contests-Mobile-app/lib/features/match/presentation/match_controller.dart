@@ -315,10 +315,13 @@ class MatchController
       _gateway.confirmStart(contestantId: contestantId, matchId: matchId);
     }
 
-    // Trận đang diễn ra. Chỉ khôi phục câu hỏi khi đồng hồ còn chạy, để không
-    // lộ câu hỏi trước khi Admin chiếu (match:start đặt currentQuestion = 1).
-    final bool questionIsLive =
-        snapshot.currentQuestion > 0 && snapshot.remainingTime > 0;
+    // Trận đang diễn ra. Chỉ khôi phục câu hỏi khi Admin đã chiếu nó, để không
+    // lộ câu hỏi lúc thí sinh vừa vào phòng (match:start đặt currentQuestion = 1
+    // và remainingTime mặc định > 0 dù Admin chưa chiếu gì). Backend cũ không
+    // gửi `questionVisible` thì dùng lại cách đoán theo đồng hồ.
+    final bool questionIsLive = snapshot.currentQuestion > 0 &&
+        snapshot.remainingTime > 0 &&
+        (snapshot.questionVisible ?? true);
     final QuestionPayload? current = state.question;
     if (questionIsLive && current?.order != snapshot.currentQuestion) {
       final QuestionPayload question = await _gateway.fetchQuestion(
@@ -388,6 +391,8 @@ class MatchController
         if (state.status == ContestantPlayStatus.eliminated) {
           unawaited(_refreshStatus());
         }
+      case QuestionPendingEvent():
+        _onQuestionPending(event.order);
       case TimerTickEvent():
         _onTimerTick(event);
       case TimerWarningEvent():
@@ -479,6 +484,27 @@ class MatchController
       status: nextStatus,
       hasSubmitted: alreadyAnswered,
       violationCount: state.violationCount,
+    ));
+  }
+
+  /// Admin chọn câu mới nhưng chưa chiếu: bỏ câu cũ, hiện màn hình chờ cho tới
+  /// khi nhận `match:questionShown` (Admin bấm "Show").
+  void _onQuestionPending(int order) {
+    _stopTicker();
+    final ContestantPlayStatus nextStatus =
+        state.status == ContestantPlayStatus.rescued
+            ? ContestantPlayStatus.playing
+            : state.status;
+    _update(MatchLiveState(
+      isLoading: state.isLoading,
+      connection: state.connection,
+      matchName: state.matchName,
+      registrationNumber: state.registrationNumber,
+      phase: MatchPhase.waiting,
+      matchInProgress: true,
+      status: nextStatus,
+      violationCount: state.violationCount,
+      pendingOrder: order > 0 ? order : null,
     ));
   }
 

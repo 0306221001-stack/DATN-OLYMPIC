@@ -43,6 +43,12 @@ export const registerMatchDiagramEvents = (io: Server, socket: Socket) => {
         });
       }
 
+      // Xóa kết quả cũ rồi tạo lại sẽ mất đáp án thí sinh đã nộp: lưu trước.
+      const submittedAnswers = await ResultService.answersByQuestion(
+        match.id,
+        payload.questionOrder
+      );
+
       const deletedResult = await ResultService.deleted(
         match.id,
         payload.questionOrder
@@ -84,7 +90,8 @@ export const registerMatchDiagramEvents = (io: Server, socket: Socket) => {
       const resultTrue = await ResultService.createIsCorrectTrues(
         match.id,
         payload.questionOrder,
-        payloadInProgress
+        payloadInProgress,
+        submittedAnswers
       );
 
       if (!resultTrue) {
@@ -113,7 +120,8 @@ export const registerMatchDiagramEvents = (io: Server, socket: Socket) => {
       const resultFalse = await ResultService.createIsCorrectFalses(
         match.id,
         payload.questionOrder,
-        eliminated
+        eliminated,
+        submittedAnswers
       );
 
       if (!resultFalse) {

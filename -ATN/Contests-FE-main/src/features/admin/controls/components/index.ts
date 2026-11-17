@@ -11,4 +11,3 @@ export { default as VideoControl } from "./VideoControl";
 export { default as StatusControl } from "./StatusControl";
 export { default as ControlsOnline } from "../../controlsOnline/ControlsOnline";
 export { default as RescueControl } from "./rescues/RescueControlPanel";
-export { default as ContestantsWinnerControlPanel } from "./contestantsWinner/WinnerControlPanel";

@@ -4,6 +4,7 @@ import { MatchService } from "@/modules/match";
 import { ScreenService, UpdateScreenInput } from "@/modules/screen";
 import { ControlKey, ControlValue } from "@prisma/client";
 import { z } from "zod";
+import { revealQuestionToStudents } from "../services/questionBroadcast";
 
 export const updateScreen = z.object({
   controlKey: z.nativeEnum(ControlKey).optional(),
@@ -57,6 +58,11 @@ export const registerScreenEvents = (io: Server, socket: Socket) => {
     callback(null, {
       message: "Cập nhật màn hình thành công",
     });
+
+    // Admin bấm "Show" câu hỏi: lúc này thí sinh mới nhận nội dung câu hỏi.
+    if (payload.controlKey === "question") {
+      await revealQuestionToStudents(io, matchRaw);
+    }
 
     // Hiện sơ đồ: gửi kèm trạng thái thí sinh mới nhất để màn chiếu cập nhật
     // ngay (thí sinh bị loại/bị cấm khi trả lời không phát sự kiện riêng).

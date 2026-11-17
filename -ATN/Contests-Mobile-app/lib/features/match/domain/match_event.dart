@@ -36,6 +36,14 @@ class QuestionShownEvent extends MatchEvent {
   final int remainingTime;
 }
 
+/// `match:questionPending`: Admin vừa chọn câu mới nhưng chưa chiếu, app hiện
+/// màn hình "Chờ câu hỏi" (không kèm nội dung câu hỏi).
+class QuestionPendingEvent extends MatchEvent {
+  const QuestionPendingEvent({required this.order});
+
+  final int order;
+}
+
 /// `timer:update`.
 class TimerTickEvent extends MatchEvent {
   const TimerTickEvent({

@@ -38,7 +38,10 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    port: 5174,
+    // Cổng bận thì báo lỗi thay vì tự nhảy sang cổng khác (backend chỉ cho
+    // socket từ các cổng khai báo trong CORS_ORIGIN).
+    strictPort: true,
     proxy: {
       // Cấu hình proxy cho API
       "/api": {

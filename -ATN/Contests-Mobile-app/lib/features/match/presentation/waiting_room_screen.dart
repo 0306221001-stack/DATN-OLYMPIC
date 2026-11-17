@@ -197,7 +197,9 @@ class _WaitingView extends StatelessWidget {
               ? 'Bạn đã bị cấm thi'
               : eliminated
                   ? 'Bạn đã bị loại'
-                  : 'Đang chờ câu hỏi',
+                  : state.pendingOrder != null
+                      ? 'Chờ câu hỏi số ${state.pendingOrder}'
+                      : 'Đang chờ câu hỏi',
           textAlign: TextAlign.center,
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.w800,

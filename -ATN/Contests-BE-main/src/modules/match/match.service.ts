@@ -464,7 +464,85 @@ export default class MatchService {
     });
   }
 
+  /**
+   * Đáp án thí sinh đã chọn ở câu hiện tại (contestantId -> chữ A/B/C/D hoặc
+   * nội dung tự luận). Chỉ trả khi ĐÃ HẾT GIỜ: sơ đồ được chiếu lên màn lớn
+   * nên hiện đáp án khi còn giờ sẽ cho thí sinh chép bài của nhau.
+   */
+  static async CurrentAnswers(matchId: number): Promise<Map<number, string>> {
+    const answers = new Map<number, string>();
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      select: {
+        currentQuestion: true,
+        remainingTime: true,
+        questionPackageId: true,
+      },
+    });
+    if (
+      !match ||
+      !match.currentQuestion ||
+      (match.remainingTime ?? 0) > 0
+    ) {
+      return answers;
+    }
+
+    const rows = await prisma.result.findMany({
+      where: {
+        matchId,
+        questionOrder: match.currentQuestion,
+        answer: { not: null },
+      },
+      select: { contestantId: true, answer: true },
+    });
+    if (rows.length === 0) {
+      return answers;
+    }
+
+    const question = await MatchService.CurrentQuestion(
+      match.currentQuestion,
+      match.questionPackageId
+    );
+    const options: unknown[] = Array.isArray(question?.options)
+      ? (question?.options as unknown[])
+      : [];
+    const isChoice = question?.questionType === "multiple_choice";
+
+    for (const row of rows) {
+      const raw = (row.answer ?? "").trim();
+      if (!raw) continue;
+      if (raw === "[KHÔNG CHỌN ĐÁP ÁN]") {
+        answers.set(row.contestantId, "—");
+        continue;
+      }
+      const index = isChoice
+        ? options.findIndex(
+            o => String(o).trim().toLowerCase() === raw.toLowerCase()
+          )
+        : -1;
+      answers.set(
+        row.contestantId,
+        index >= 0 ? String.fromCharCode(65 + index) : raw
+      );
+    }
+    return answers;
+  }
+
   static async ListContestant(matchId: number) {
+    const [groups, answers] = await Promise.all([
+      MatchService.ListContestantRaw(matchId),
+      MatchService.CurrentAnswers(matchId),
+    ]);
+    return groups.map(group => ({
+      ...group,
+      contestantMatches: group.contestantMatches.map(cm => ({
+        ...cm,
+        answer: answers.get(cm.contestantId) ?? null,
+      })),
+    }));
+  }
+
+  private static async ListContestantRaw(matchId: number) {
     return prisma.group.findMany({
       where: { matchId: matchId },
       select: {
@@ -479,6 +557,7 @@ export default class MatchService {
         },
         contestantMatches: {
           select: {
+            contestantId: true,
             registrationNumber: true,
             eliminatedAtQuestionOrder: true,
             rescuedAtQuestionOrder: true,

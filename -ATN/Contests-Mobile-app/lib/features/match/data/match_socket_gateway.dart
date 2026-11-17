@@ -277,6 +277,11 @@ class MatchSocketGateway {
         listen('match:started', started);
         listen('match:globalStarted', started);
         listen('match:questionShown', _mapQuestionShown);
+        listen('match:questionPending', (Map<String, dynamic> payload) {
+          return QuestionPendingEvent(
+            order: JsonRead.asInt(payload['currentQuestion']) ?? 0,
+          );
+        });
         listen('timer:update', (Map<String, dynamic> payload) {
           return TimerTickEvent(
             remainingTime: JsonRead.asInt(payload['timeRemaining']) ?? 0,

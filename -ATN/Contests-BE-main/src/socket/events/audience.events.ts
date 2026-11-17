@@ -124,14 +124,14 @@ export const registerAudienceEvents = (io: Server, socket: Socket) => {
       });
     }
 
-    const rescuse = await RescueService.updateRescue(payload.rescueId, {
-      status: "used",
-    });
+    // Đọc trước rồi mới đánh dấu "đã dùng": nếu đánh dấu ngay từ đầu thì bấm
+    // nhầm lúc chưa ai bình chọn sẽ mất luôn lượt trợ giúp khán giả.
+    const rescuse = await RescueService.getRescueBy({ id: payload.rescueId });
 
     if (!rescuse) {
       return callback(null, {
         success: false,
-        message: "Cập nhật cứu trợ thất bại",
+        message: "Không tìm thấy đợt cứu trợ",
       });
     }
 
@@ -142,12 +142,22 @@ export const registerAudienceEvents = (io: Server, socket: Socket) => {
         )
       : [];
 
-    console.log(typeof (supportAnswers.length === 0));
     if (supportAnswers.length === 0) {
-      console.log("Không có câu trả lời hỗ trợ nào cho cứu trợ này");
       return callback({
         success: false,
-        message: "Không có câu trả lời hỗ trợ nào cho cứu trợ này",
+        message:
+          "Chưa có khán giả nào bình chọn nên chưa thể hiển thị thống kê",
+      });
+    }
+
+    const rescueUsed = await RescueService.updateRescue(payload.rescueId, {
+      status: "used",
+    });
+
+    if (!rescueUsed) {
+      return callback(null, {
+        success: false,
+        message: "Cập nhật cứu trợ thất bại",
       });
     }
 

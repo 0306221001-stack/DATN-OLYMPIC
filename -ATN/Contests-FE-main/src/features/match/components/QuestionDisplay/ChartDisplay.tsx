@@ -15,13 +15,25 @@ import { ChartBarIcon, TrophyIcon } from "@heroicons/react/24/outline";
 
 interface ChartDisplayProps {
   title?: string;
-  chartData?: { label: string; value: number }[] | null;
+  chartData?: { label: string | number; value: number }[] | null;
+  /** Tiền tố của nhãn mỗi cột, ví dụ "Câu" hoặc "SBD". */
+  labelPrefix?: string;
+  /** Đơn vị của giá trị, ví dụ "thí sinh trả lời đúng". */
+  valueUnit?: string;
+  /** Dòng giải thích cách đọc biểu đồ, hiện dưới tiêu đề. */
+  description?: string;
 }
 
 const ChartDisplay: React.FC<ChartDisplayProps> = ({
   chartData = [],
   title,
+  labelPrefix = "",
+  valueUnit = "",
+  description,
 }) => {
+  const nameOf = (label: string | number) =>
+    labelPrefix ? `${labelPrefix} ${label}` : String(label);
+
   const COLORS = [
     "#8B5CF6",
     "#06B6D4",
@@ -66,6 +78,11 @@ const ChartDisplay: React.FC<ChartDisplayProps> = ({
               {title || "Biểu đồ thống kê câu hỏi"}
             </h1>
           </div>
+          {description && (
+            <p className="text-xs sm:text-base lg:text-xl text-gray-700 font-medium">
+              {description}
+            </p>
+          )}
         </div>
 
         {/* Nội dung chính */}
@@ -98,13 +115,16 @@ const ChartDisplay: React.FC<ChartDisplayProps> = ({
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis
                         dataKey="label"
+                        tickFormatter={(label: string | number) =>
+                          nameOf(label)
+                        }
                         tick={{
                           fill: "#374151",
                           fontSize: 14,
                           fontWeight: 500,
                         }}
                       />
-                      <YAxis tick={{ fill: "#374151", fontSize: 14 }} />
+                      <YAxis allowDecimals={false} tick={{ fill: "#374151", fontSize: 14 }} />
                       <Tooltip
                         contentStyle={{
                           backgroundColor: "white",
@@ -113,9 +133,12 @@ const ChartDisplay: React.FC<ChartDisplayProps> = ({
                           color: "#374151",
                           fontSize: "12px",
                         }}
+                        labelFormatter={(label: string | number) =>
+                          nameOf(label)
+                        }
                         formatter={(value: number) => [
-                          `${value} câu`,
-                          "Số câu",
+                          valueUnit ? `${value} ${valueUnit}` : `${value}`,
+                          "Số lượng",
                         ]}
                       />
                       <Legend
@@ -131,7 +154,9 @@ const ChartDisplay: React.FC<ChartDisplayProps> = ({
                           fontWeight: "500",
                         }}
                         payload={barChartData?.map(item => ({
-                          value: `${item.label} (${item.value} - ${item.percentage}%)`,
+                          value: `${nameOf(item.label)}: ${item.value}${
+                            valueUnit ? ` ${valueUnit}` : ""
+                          } (${item.percentage}%)`,
                           type: "rect",
                           color: item.fill,
                         }))}

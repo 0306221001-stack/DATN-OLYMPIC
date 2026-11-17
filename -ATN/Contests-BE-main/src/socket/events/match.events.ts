@@ -129,11 +129,11 @@ export const registerMatchEvents = (
         },
       });
 
-      const roomName = `match-${match.id}`;
-
-      // Debug: Check who is in the room
-      const studentsInRoom = io.of("/student").adapter.rooms.get(roomName);
-      const adminInRoom = io.of("/match-control").adapter.rooms.get(roomName);
+      // Client vào room theo id (app thí sinh) lẫn theo slug (web admin, app
+      // trọng tài): phát cho cả hai, Socket.IO tự loại trùng.
+      const roomName = match.slug
+        ? [`match-${match.id}`, `match-${match.slug}`]
+        : `match-${match.id}`;
 
 
       // Broadcast to all clients in the match room
@@ -252,7 +252,11 @@ export const registerMatchEvents = (
 
 
 
-      const roomName = `match-${match.id}`;
+      // Client vào room theo id (app thí sinh) lẫn theo slug (web admin, app
+      // trọng tài): phát cho cả hai, Socket.IO tự loại trùng.
+      const roomName = match.slug
+        ? [`match-${match.id}`, `match-${match.slug}`]
+        : `match-${match.id}`;
 
 
 
@@ -288,8 +292,6 @@ export const registerMatchEvents = (
         });
 
       // Emit to student namespace (for students)
-      const studentNamespace = io.of("/student");
-      const studentsInRoom = studentNamespace.adapter.rooms.get(roomName);
 
 
       io.of("/student")

@@ -28,6 +28,39 @@ const iconVariants: Variants = {
   disintegrating: { opacity: 0, scale: 0.9, transition: { duration: 1 } },
 };
 
+/**
+ * Nhãn đáp án dưới số báo danh. Đáp án ngắn (A/B/C/D, số) hiện to; đáp án tự
+ * luận dài thì giảm cỡ chữ, tự xuống dòng và cắt bớt (đủ 4 dòng), đưa chuột
+ * vào xem được nguyên văn.
+ */
+const AnswerLabel: React.FC<{ text: string }> = ({ text }) => {
+  const length = text.trim().length;
+  // Hệ số theo cỡ chữ của ô (em): càng dài càng nhỏ.
+  const scale =
+    length <= 2 ? 0.55 : length <= 6 ? 0.38 : length <= 16 ? 0.26 : length <= 40 ? 0.19 : 0.15;
+  const lines = length <= 16 ? 2 : 4;
+  return (
+    <span
+      title={text}
+      className="rounded-md bg-white/95 text-gray-900 font-extrabold leading-tight shadow"
+      style={{
+        fontSize: `max(11px, ${scale}em)`,
+        maxWidth: '92%',
+        padding: '0.05em 0.3em',
+        overflowWrap: 'anywhere',
+        wordBreak: 'break-word',
+        display: '-webkit-box',
+        WebkitLineClamp: lines,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
+        textShadow: 'none',
+      }}
+    >
+      {text}
+    </span>
+  );
+};
+
 const EliminateGrid: React.FC<EliminateGridProps> = ({
   listContestant,
   maxContestantColumn,
@@ -35,6 +68,16 @@ const EliminateGrid: React.FC<EliminateGridProps> = ({
   recentlyRestored,
 }) => {
   const totalContestants = icons.length;
+
+  // Số báo danh -> đáp án thí sinh chọn ở câu hiện tại (có sau khi hết giờ).
+  const answerByRegistration = new Map<number, string>();
+  listContestant?.forEach(group =>
+    group?.contestantMatches?.forEach(contestant => {
+      if (contestant?.answer) {
+        answerByRegistration.set(contestant.registrationNumber, contestant.answer);
+      }
+    })
+  );
   
   if (totalContestants === 0) {
     return <div className="w-full h-full flex items-center justify-center text-gray-500">No contestants</div>;
@@ -166,22 +209,30 @@ const EliminateGrid: React.FC<EliminateGridProps> = ({
                   minHeight: '100%'
                 }}
                 >
-                <span 
-                  className="font-black leading-none text-center drop-shadow-lg select-none"
+                <div
+                  className="flex flex-col items-center justify-center text-center select-none"
                   style={{
-                  textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-                  wordBreak: 'break-all',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '2px',
-                  width: '100%',
-                  height: '100%'
+                    width: '100%',
+                    height: '100%',
+                    padding: '2px',
+                    overflow: 'hidden',
+                    gap: '0.12em',
                   }}
                 >
-                  {icon.registrationNumber}
-                </span>
+                  <span
+                    className="font-black leading-none drop-shadow-lg"
+                    style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}
+                  >
+                    {icon.registrationNumber}
+                  </span>
+                  {/* Đáp án thí sinh chọn ở câu hiện tại: ngay dưới SBD */}
+                  {answerByRegistration.has(icon.registrationNumber) &&
+                    !icon.isFading && (
+                      <AnswerLabel
+                        text={answerByRegistration.get(icon.registrationNumber) ?? ""}
+                      />
+                    )}
+                </div>
                 </motion.div>
 
               {/* Particles Effect */}

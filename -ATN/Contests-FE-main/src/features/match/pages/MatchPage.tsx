@@ -426,7 +426,13 @@ export default function MatchPage() {
 
       {screenControl?.controlKey === "statistic" && (
         <div key="statistic">
-          <ChartDisplay chartData={statistic} title="Thống kê câu hỏi " />
+          <ChartDisplay
+            chartData={statistic}
+            title="Thống kê câu hỏi"
+            labelPrefix="Câu"
+            valueUnit="thí sinh đúng"
+            description="Mỗi cột là một câu hỏi, chiều cao cột là số thí sinh trả lời đúng. Phần trăm là tỉ lệ trên tổng số lượt đúng. Màu sắc chỉ để phân biệt các cột."
+          />
         </div>
       )}
 
@@ -435,6 +441,9 @@ export default function MatchPage() {
           <ChartDisplay
             chartData={contestantsStatistic}
             title="Thống kê thí sinh"
+            labelPrefix="SBD"
+            valueUnit="câu đúng"
+            description="Mỗi cột là một thí sinh (số báo danh), chiều cao cột là số câu trả lời đúng. Phần trăm là tỉ lệ trên tổng số câu đúng của các thí sinh. Màu sắc chỉ để phân biệt các cột."
           />
         </div>
       )}

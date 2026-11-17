@@ -158,6 +158,15 @@ export const registerStudentEvents = (
         },
       });
 
+      // Admin đã chiếu câu hỏi lên màn hình chưa? remainingTime luôn > 0 (mặc
+      // định = thời gian của câu) nên không dùng được để đoán: app thí sinh vào
+      // phòng sẽ thấy câu hỏi khi admin chưa chiếu.
+      const screen = await prisma.screenControl.findUnique({
+        where: { matchId: match.id },
+        select: { controlKey: true },
+      });
+      const questionVisible = screen?.controlKey === "question";
+
       callback?.({
         success: true,
         message: "Match status retrieved successfully",
@@ -169,6 +178,7 @@ export const registerStudentEvents = (
             currentQuestion: match.currentQuestion,
             remainingTime: match.remainingTime,
             status: match.status,
+            questionVisible,
           },
           contestantStatus: contestantMatch?.status || "not_started",
           results: results.map((result: any) => ({

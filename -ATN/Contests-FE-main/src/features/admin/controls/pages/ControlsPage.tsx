@@ -1,6 +1,5 @@
 import { Link, useParams } from "react-router-dom";
 import React, { useState, useEffect, useRef } from "react";
-import ChartControl from "../components/ChartControl";
 import {
   QuestionControl,
   AnswerControl,
@@ -11,7 +10,6 @@ import {
   VideoControl,
   StatusControl,
   RescueControl,
-  ContestantsWinnerControlPanel,
 } from "../components";
 import { OnlineExamControl } from "../../controlsOnline";
 import QuestionDetails from "../components/QuestionDetails";
@@ -29,9 +27,7 @@ import {
   useListRescueLifelineUsed,
   useListAwards,
   useResultsByMatchSlug,
-  useAdvanceGuard,
 } from "../hook/useControls";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   type MatchInfo,
   type Question,
@@ -110,7 +106,6 @@ const ControlsPage: React.FC = () => {
   const rescueControlRef = useRef<HTMLDivElement>(null);
   const audienceRescueControlRef = useRef<HTMLDivElement>(null);
   const awardControlRef = useRef<HTMLDivElement>(null);
-  const chartControlRef = useRef<HTMLDivElement>(null);
 
   const [matchInfo, setMatchInfo] = useState<MatchInfo | null>(null);
   const [listAward, setListAward] = useState<ListAward | null>(null);
@@ -121,16 +116,6 @@ const ControlsPage: React.FC = () => {
   const [listQuestion, setListQuestion] = useState<Question[]>([]);
   const [screenControl, setScreenControl] = useState<SceenControl | null>(null);
   const [listContestant, setListContestant] = useState<ListContestant[]>([]);
-  // Cứu trợ trước, qua vòng sau: hỏi lại server mỗi khi trạng thái thí sinh
-  // hoặc câu hỏi hiện tại thay đổi.
-  const queryClient = useQueryClient();
-  const { data: advanceGuardRes } = useAdvanceGuard(matchInfo?.id ?? null);
-  const advanceBlockMessage: string | null = advanceGuardRes?.data?.blocked
-    ? advanceGuardRes.data.message
-    : null;
-  useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ["AdvanceGuard"] });
-  }, [listContestant, currentQuestion?.questionOrder, queryClient]);
   const [sponsorMedia, setSponsorMedia] = useState<MediaType[]>([]);
   const [classVideo, setClassVideo] = useState<MediaType[]>([]);
   const [listResult, setListResult] = useState<ListResult[]>([]);
@@ -474,7 +459,6 @@ const ControlsPage: React.FC = () => {
       icon: "🙋",
     },
     { id: "award", name: "Giải thưởng", ref: awardControlRef, icon: "🏆" },
-    { id: "chart", name: "Biểu đồ", ref: chartControlRef, icon: "📊" },
   ] as const;
 
   // Scroll to section function
@@ -496,7 +480,6 @@ const ControlsPage: React.FC = () => {
       { id: "rescue", ref: rescueControlRef },
       { id: "audience-rescue", ref: audienceRescueControlRef },
       { id: "award", ref: awardControlRef },
-      { id: "chart", ref: chartControlRef },
     ];
 
     sections.forEach(section => {
@@ -771,7 +754,6 @@ const ControlsPage: React.FC = () => {
               ListContestant={listContestant}
               questionOrder={currentQuestion?.questionOrder || 0}
               controlKey={screenControl?.controlKey}
-              advanceBlockMessage={advanceBlockMessage}
             />
           </div>
 
@@ -805,15 +787,7 @@ const ControlsPage: React.FC = () => {
               ListResult={listResult || null}
             />
           </div>
-          <div
-            ref={chartControlRef}
-            className="bg-white p-6 rounded-xl shadow-md mb-8 border border-gray-100"
-          >
-            <ChartControl />
-          </div>
 
-          {/** Phần điều khiển thí sinh chiến thắng */}
-          <ContestantsWinnerControlPanel matchId={matchInfo?.id ?? 0} />
           <div>
             <Link
               className="block text-center w-full btn bg-red-500 hover:bg-red-600 cursor-pointer text-white font-bold p-2 rounded-lg"

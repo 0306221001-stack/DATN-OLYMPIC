@@ -9,7 +9,7 @@ import ContestantService from "@/modules/contestant/contestant.service";
 
 import { matchTimers } from "../events/timer.event";
 import { UserService } from "@/modules/user";
-import { transformQuestionMedia } from "@/utils/mediaTransform";
+import { announceQuestionPending } from "../services/questionBroadcast";
 
 export const registerQuestionEvents = (io: Server, socket: Socket) => {
   socket.on("currentQuestion:get", async (data, callback) => {
@@ -65,8 +65,11 @@ export const registerQuestionEvents = (io: Server, socket: Socket) => {
       });
     }
 
+    // Chọn câu chỉ là chuẩn bị: màn chiếu về nền và thí sinh thấy "Chờ câu
+    // hỏi". Câu hỏi chỉ hiện (trên màn chiếu lẫn app thí sinh) khi Admin bấm
+    // "Show" (screen:update controlKey "question").
     await ScreenService.update(screen.id, {
-      controlKey: "question",
+      controlKey: "background",
     });
 
     await GroupDivisionService.UpdateContestantStatusByIds(matchInfo.id);
@@ -108,34 +111,10 @@ export const registerQuestionEvents = (io: Server, socket: Socket) => {
       ListContestant,
     });
 
-    // 🔥 NEW: CHỈ gửi cho học sinh khi match đã bắt đầu
+    // Chỉ báo cho thí sinh khi trận đã bắt đầu; nội dung câu hỏi gửi sau, lúc
+    // Admin bấm "Show".
     if (isMatchStarted) {
-      io.of("/student")
-        .to(roomName)
-        .emit("match:questionShown", {
-          matchId: matchInfo.id,
-          matchSlug: matchInfo.slug,
-          currentQuestion: questionOrder,
-          remainingTime: currentQuestion.defaultTime,
-          currentQuestionData: {
-            order: questionOrder,
-            question: {
-              id: currentQuestion.id,
-              intro: currentQuestion.intro,
-              content: currentQuestion.content,
-              questionType: currentQuestion.questionType,
-              difficulty: currentQuestion.difficulty,
-              defaultTime: currentQuestion.defaultTime,
-              score: currentQuestion.score,
-              options: Array.isArray(currentQuestion.options)
-                ? currentQuestion.options
-                : typeof currentQuestion.options === "string"
-                ? JSON.parse(currentQuestion.options)
-                : [],
-              media: transformQuestionMedia(currentQuestion.questionMedia),
-            },
-          },
-        });
+      announceQuestionPending(io, matchInfo, questionOrder);
     } else {
       console.log(
         `[DEBUG] ⚠️ KHÔNG gửi câu hỏi cho học sinh (match chưa bắt đầu)`

@@ -12,8 +12,6 @@ interface ContestantProps {
   questionOrder: number;
   controlKey?: ControlKey;
   ListContestant: ListContestant[];
-  /** Có nội dung khi phải cứu trợ trước, chưa được bấm "Qua vòng". */
-  advanceBlockMessage?: string | null;
 }
 
 interface UpdateContestantPayload {
@@ -25,7 +23,6 @@ const ContestantsControlUI: React.FC<ContestantProps> = ({
   questionOrder,
   ListContestant,
   controlKey,
-  advanceBlockMessage,
 }) => {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const { socket } = useSocket();
@@ -109,6 +106,18 @@ const ContestantsControlUI: React.FC<ContestantProps> = ({
         }
       }
     );
+  };
+
+  // Chiếu biểu đồ thống kê lên màn hình chiếu.
+  const EmitChart = (event: string, successMessage: string) => {
+    if (!socket || !match) return;
+    socket.emit(event, { match }, (err: any) => {
+      if (err) {
+        showToast(err.message, "error");
+      } else {
+        showToast(successMessage, "success");
+      }
+    });
   };
 
   const EmitUpdateRescued = () => {
@@ -234,18 +243,6 @@ const ContestantsControlUI: React.FC<ContestantProps> = ({
           </button>
 
           <button
-            onClick={() => EmitContestantUpdate("completed")}
-            disabled={!!advanceBlockMessage}
-            title={advanceBlockMessage ?? undefined}
-            className={`px-4 py-2 rounded font-semibold text-sm ${
-              advanceBlockMessage
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-emerald-500 text-white"
-            }`}
-          >
-            Qua vòng
-          </button>
-          <button
             onClick={() => setSelectedIds([])}
             className="bg-gray-400 text-white px-4 py-2 rounded"
           >
@@ -266,11 +263,6 @@ const ContestantsControlUI: React.FC<ContestantProps> = ({
             Chọn tất cả
           </button>
         </div>
-        {advanceBlockMessage && (
-          <p className="w-full text-center text-sm font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-            {advanceBlockMessage}
-          </p>
-        )}
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => EmitScreenUpdate({ controlKey: "matchDiagram" })}
@@ -291,6 +283,27 @@ const ContestantsControlUI: React.FC<ContestantProps> = ({
             className="bg-yellow-400 text-yellow-900 px-4 py-2 rounded font-semibold text-sm"
           >
             Hiển thị thí sinh được cứu
+          </button>
+
+          <button
+            onClick={() =>
+              EmitChart("statistics:update", "Hiển thị biểu đồ thành công")
+            }
+            className="bg-red-500 text-white px-4 py-2 rounded font-semibold text-sm"
+          >
+            Hiển thị thống kê câu hỏi
+          </button>
+
+          <button
+            onClick={() =>
+              EmitChart(
+                "statisticsContestant:update",
+                "Hiển thị biểu đồ thí sinh thành công"
+              )
+            }
+            className="bg-red-500 text-white px-4 py-2 rounded font-semibold text-sm"
+          >
+            Hiển thị thống kê thí sinh
           </button>
         </div>
       </div>

@@ -144,6 +144,8 @@ export type ListRescue = {
 
 export type contestant = {
   registrationNumber: number;
+  /** Đáp án thí sinh chọn ở câu hiện tại (A/B/C/D hoặc tự luận); chỉ có sau khi hết giờ. */
+  answer?: string | null;
   eliminatedAtQuestionOrder: number | null;
   rescuedAtQuestionOrder: number | null;
   status: ContestantMatchStatus;
@@ -193,6 +195,8 @@ export type Question = {
 
 export interface Contestant {
   registrationNumber: number;
+  /** Đáp án thí sinh chọn ở câu hiện tại (A/B/C/D hoặc tự luận); chỉ có sau khi hết giờ. */
+  answer?: string | null;
   eliminatedAtQuestionOrder: number | null;
   rescuedAtQuestionOrder: number | null;
   status: ContestantMatchStatus;

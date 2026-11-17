@@ -1117,6 +1117,7 @@ export class ResultService {
           matchId: data.matchId,
           isCorrect: isCorrect,
           questionOrder: data.questionOrder,
+          answer: data.answer,
         },
         include: {
           contestant: {
@@ -1402,6 +1403,17 @@ export class ResultService {
     }
   }
 
+  /** Đáp án đã nộp của từng thí sinh ở một câu (contestantId -> đáp án). */
+  static async answersByQuestion(match: number, questionOrder: number) {
+    const rows = await prisma.result.findMany({
+      where: { matchId: match, questionOrder, answer: { not: null } },
+      select: { contestantId: true, answer: true },
+    });
+    return new Map<number, string>(
+      rows.map(r => [r.contestantId, r.answer as string])
+    );
+  }
+
   static async deleted(match: number, questionOrder: number) {
     console.log(
       `Deleting results for match ${match} and questionOrder ${questionOrder}`
@@ -1413,13 +1425,15 @@ export class ResultService {
   static async createIsCorrectTrues(
     match: number,
     questionOrder: number,
-    contestants: number[]
+    contestants: number[],
+    answers?: Map<number, string>
   ) {
     const data = contestants.map(contestantId => ({
       contestantId: contestantId,
       matchId: match,
       isCorrect: true,
       questionOrder: questionOrder,
+      answer: answers?.get(contestantId) ?? null,
     }));
     return prisma.result.createMany({
       data: data,
@@ -1429,13 +1443,15 @@ export class ResultService {
   static async createIsCorrectFalses(
     match: number,
     questionOrder: number,
-    contestants: number[]
+    contestants: number[],
+    answers?: Map<number, string>
   ) {
     const data = contestants.map(contestantId => ({
       contestantId: contestantId,
       matchId: match,
       isCorrect: false,
       questionOrder: questionOrder,
+      answer: answers?.get(contestantId) ?? null,
     }));
     return prisma.result.createMany({
       data: data,
@@ -1443,20 +1459,54 @@ export class ResultService {
   }
 
   static async statisticals(matchId: number) {
-    return prisma.result.groupBy({
-      by: ["questionOrder"],
-      _count: {
-        isCorrect: true,
-      },
-      where: {
-        matchId: matchId,
-        isCorrect: true,
+    // Gom theo từng câu hỏi đã chơi, kể cả câu không ai trả lời đúng.
+    // Nếu lọc sẵn isCorrect=true ngay trong truy vấn thì những câu 0 người
+    // đúng sẽ biến mất khỏi biểu đồ, nhìn như hệ thống chưa có dữ liệu.
+    const rows = await prisma.result.groupBy({
+      by: ["questionOrder", "isCorrect"],
+      _count: { _all: true },
+      where: { matchId: matchId },
+    });
+
+    const correctByQuestion = new Map<number, number>();
+    for (const row of rows) {
+      const current = correctByQuestion.get(row.questionOrder) ?? 0;
+      correctByQuestion.set(
+        row.questionOrder,
+        current + (row.isCorrect ? row._count._all : 0)
+      );
+    }
+
+    return [...correctByQuestion.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([questionOrder, correctCount]) => ({
+        questionOrder,
+        _count: { isCorrect: correctCount },
+      }));
+  }
+
+  static async chartContestant(matchId: number) {
+    // 1. Lấy toàn bộ thí sinh dự trận, kể cả người chưa trả lời đúng câu nào,
+    //    để biểu đồ không bị trống lúc trận mới bắt đầu.
+    const contestantMatches = await prisma.contestantMatch.findMany({
+      where: { matchId: matchId },
+      select: {
+        contestantId: true,
+        registrationNumber: true,
+        contestant: {
+          select: {
+            student: {
+              select: {
+                fullName: true,
+              },
+            },
+          },
+        },
       },
     });
-  }
-  static async chartContestant(matchId: number) {
-    // 1. Group theo contestantId và đếm số câu đúng
-    const groupedResults = await prisma.result.groupBy({
+
+    // 2. Đếm số câu đúng của từng thí sinh
+    const correctCounts = await prisma.result.groupBy({
       by: ["contestantId"],
       where: {
         matchId: matchId,
@@ -1467,43 +1517,24 @@ export class ResultService {
       },
     });
 
-    // 2. Lấy thông tin chi tiết contestant, student, registrationNumber
-    const detailed = await Promise.all(
-      groupedResults.map(async item => {
-        const contestant = await prisma.contestant.findUnique({
-          where: {
-            id: item.contestantId,
-          },
-          include: {
-            student: {
-              select: {
-                fullName: true,
-              },
-            },
-            contestantMatches: {
-              where: {
-                matchId: matchId,
-              },
-              select: {
-                registrationNumber: true,
-              },
-            },
-          },
-        });
-
-        return {
-          contestantId: item.contestantId,
-          correctCount: item._count.isCorrect,
-          fullName: contestant?.student?.fullName || "Unknown",
-          registrationNumber:
-            contestant?.contestantMatches?.[0]?.registrationNumber || null,
-        };
-      })
+    const correctByContestant = new Map(
+      correctCounts.map(item => [item.contestantId, item._count.isCorrect])
     );
 
-    const list = detailed
-      .slice(0, 10)
-      .sort((a, b) => b.correctCount - a.correctCount); // Lấy 10 thí sinh đầu tiên
-    return list;
+    // 3. Sắp xếp trước rồi mới cắt 10 thí sinh: trước đây cắt trước nên danh
+    //    sách "top 10" thật ra là 10 thí sinh bất kỳ.
+    return contestantMatches
+      .map(item => ({
+        contestantId: item.contestantId,
+        correctCount: correctByContestant.get(item.contestantId) ?? 0,
+        fullName: item.contestant?.student?.fullName || "Unknown",
+        registrationNumber: item.registrationNumber ?? null,
+      }))
+      .sort(
+        (a, b) =>
+          b.correctCount - a.correctCount ||
+          (a.registrationNumber ?? 0) - (b.registrationNumber ?? 0)
+      )
+      .slice(0, 10);
   }
 }
