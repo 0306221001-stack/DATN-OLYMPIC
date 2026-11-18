@@ -45,3 +45,6 @@ src/modules/user/user.controller.ts
 uploads/**/*
 !uploads/about/
 !uploads/about/*
+!uploads/sponsors/
+!uploads/sponsors/*/
+!uploads/sponsors/*/*

@@ -84,7 +84,14 @@ export const registerStudentNamespaceEvents = async (
   socket: Socket
 ) => {
 
-  const userInfo = await extractUserAndContestantFromSocket(socket);
+  // authMiddleware đã xác thực và gắn user/contestantId vào socket. Dùng luôn,
+  // KHÔNG await truy vấn DB nữa: handler phải được đăng ký đồng bộ lúc kết nối,
+  // nếu không sự kiện client gửi ngay sau khi nối (joinMatch, getMatchStatus
+  // khi tự nối lại) sẽ bị bỏ mất.
+  const preAuth = socket as AuthenticatedSocket;
+  const userInfo = preAuth.user
+    ? { user: preAuth.user as JwtPayload, contestantId: preAuth.contestantId }
+    : await extractUserAndContestantFromSocket(socket);
 
   if (!userInfo) {
     logger.warn(`❌ Cannot authenticate socket: ${socket.id}`);

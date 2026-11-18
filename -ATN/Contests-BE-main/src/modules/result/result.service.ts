@@ -20,6 +20,9 @@ import { broadcastContestantStatus } from "@/socket/services/contestantStatus";
 // Thời gian ân hạn sau khi đồng hồ về 0 cho đáp án app tự nộp lúc hết giờ.
 const SUBMIT_GRACE_MS = 5000;
 
+// Các lần nộp đáp án đang xử lý, khóa theo "thí sinh:trận:câu".
+const submitsInFlight = new Set<string>();
+
 export class ResultService {
   private prisma: PrismaClient;
 
@@ -830,6 +833,30 @@ export class ResultService {
     contestantId: number,
     data: SubmitAnswerData
   ): Promise<SubmitAnswerResponse> {
+    // Bảng results không có ràng buộc duy nhất nên "kiểm tra đã trả lời chưa" rồi
+    // mới ghi bị lọt khi cùng một thí sinh gửi nhiều lần song song (bấm đúp, app
+    // tự gửi lại khi mạng chập chờn): ghi trùng, thống kê bị đếm đôi. Chỉ cho
+    // một yêu cầu cùng (thí sinh, trận, câu) chạy tại một thời điểm.
+    const key = `${contestantId}:${data.matchId}:${data.questionOrder}`;
+    if (submitsInFlight.has(key)) {
+      return {
+        success: false,
+        message: "Bạn đã trả lời câu hỏi này rồi",
+        alreadyAnswered: true,
+      };
+    }
+    submitsInFlight.add(key);
+    try {
+      return await this.submitAnswerUnlocked(contestantId, data);
+    } finally {
+      submitsInFlight.delete(key);
+    }
+  }
+
+  private async submitAnswerUnlocked(
+    contestantId: number,
+    data: SubmitAnswerData
+  ): Promise<SubmitAnswerResponse> {
     try {
       // 1. Kiểm tra contestant tồn tại và trạng thái
       const contestant = await this.prisma.contestant.findUnique({
@@ -936,8 +963,11 @@ export class ResultService {
       // Hết giờ: chỉ nhận thêm trong thời gian ân hạn ngắn cho đáp án app tự nộp
       // lúc đồng hồ về 0, để không nộp được sau khi đã công bố đáp án.
       if (match.remainingTime === 0) {
-        const endedAt = timerEndedAt.get(match.slug ?? "");
-        if (endedAt && Date.now() - endedAt > SUBMIT_GRACE_MS) {
+        // Server restart làm mất bộ nhớ "đồng hồ đã kết thúc": lấy lần cập nhật
+        // cuối của trận (lúc đồng hồ ghi remainingTime = 0) làm mốc thay thế.
+        const endedAt =
+          timerEndedAt.get(match.slug ?? "") ?? match.updatedAt.getTime();
+        if (Date.now() - endedAt > SUBMIT_GRACE_MS) {
           return {
             success: false,
             message: "Đã hết thời gian trả lời câu hỏi này",
@@ -1437,6 +1467,7 @@ export class ResultService {
     }));
     return prisma.result.createMany({
       data: data,
+      skipDuplicates: true,
     });
   }
 
@@ -1455,6 +1486,7 @@ export class ResultService {
     }));
     return prisma.result.createMany({
       data: data,
+      skipDuplicates: true,
     });
   }
 

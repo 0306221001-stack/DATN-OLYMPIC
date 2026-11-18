@@ -426,6 +426,8 @@ model Result {
   answer         String?    @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  // Mỗi thí sinh chỉ có một kết quả cho mỗi câu của một trận.
+  @@unique([contestantId, matchId, questionOrder], map: "results_contestant_match_question_key")
   @@map("results")
 }
 
