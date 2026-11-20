@@ -12,6 +12,7 @@ import { registerMatchEvents } from "./events/match.events";
 import { timerService } from "./services/timer.service";
 import { prisma } from "@/config/database";
 import { findCurrentContestantId } from "@/utils/currentContestant";
+import { hardenSocket } from "./middleware/hardenSocket";
 
 // Extend Socket interface to include user and contestant info
 interface AuthenticatedSocket extends Socket {
@@ -42,6 +43,12 @@ export const authMiddleware = async (
 
     // Không ghi token (hay một phần token) vào log: ai đọc được log sẽ đăng nhập thay được.
     const payload = verifyToken(token) as JwtPayload;
+
+    // Refresh token sống lâu hơn nên không được dùng thay access token (REST cũng chặn).
+    if (payload.type !== "access") {
+      logger.warn(`❌ [BE] Token sai loại (${payload.type}) khi kết nối socket: ${payload.userId}`);
+      return next(new Error("Authentication error: Invalid token type"));
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
@@ -118,6 +125,8 @@ export const initializeSocketIO = (io: Server) => {
       `✅ Connected to /match-control: ${socket.id} | User: ${user.username} (${user.userId}) | Role: ${user.role}`
     );
 
+    hardenSocket(socket);
+
     // Đăng ký các sự kiện riêng cho namespace này (bao gồm cả online control)
     // Sự kiện khán giả đã được đăng ký (chỉ cho Admin) trong registerMatchControlEvents.
     registerMatchControlEvents(io, authSocket);
@@ -138,6 +147,7 @@ export const initializeSocketIO = (io: Server) => {
 
   studentNamespace.on("connection", async (socket: Socket) => {
     const authSocket = socket as AuthenticatedSocket;
+    hardenSocket(socket);
 
     // Một thí sinh chỉ có một kết nối: đá kết nối cũ (thiết bị cũ, kết nối treo
     // sau khi rớt mạng) để sự kiện không bị gửi trùng và trạng thái không lệch.

@@ -15,7 +15,13 @@ export const registerQuestionEvents = (io: Server, socket: Socket) => {
   socket.on("currentQuestion:get", async (data, callback) => {
     // console.log("[DEBUG] Admin gửi currentQuestion:get:", data);
 
-    const { match, questionOrder } = data;
+    // Dữ liệu sai thì báo lỗi, không để handler văng ngoại lệ.
+    const match: string | undefined =
+      typeof data?.match === "string" && data.match ? data.match : undefined;
+    const questionOrder = Number(data?.questionOrder);
+    if (!match || !Number.isInteger(questionOrder) || questionOrder < 1) {
+      return callback?.({ success: false, message: "Dữ liệu không hợp lệ" });
+    }
 
     const matchTimer = matchTimers.get(match);
     if (matchTimer?.intervalId) {

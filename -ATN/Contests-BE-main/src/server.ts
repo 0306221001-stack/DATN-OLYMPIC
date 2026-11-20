@@ -69,16 +69,15 @@ const startServer = async (): Promise<void> => {
     process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
     process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
-    // Handle uncaught exceptions
+    // Lỗi lẻ trong một handler (dữ liệu client gửi sai...) chỉ được ghi log,
+    // KHÔNG tắt server: tắt là cả cuộc thi rớt kết nối. Nếu coi lỗi là nghiêm
+    // trọng thì hãy để trình giám sát tiến trình (pm2, docker...) khởi động lại.
     process.on("uncaughtException", (error: Error) => {
       logger.error("Uncaught Exception:", error);
-      gracefulShutdown("uncaughtException");
     });
 
-    // Handle unhandled promise rejections
     process.on("unhandledRejection", (reason: unknown) => {
       logger.error("Unhandled Rejection:", reason);
-      gracefulShutdown("unhandledRejection");
     });
   } catch (error) {
     logger.error("Failed to start server:", error);

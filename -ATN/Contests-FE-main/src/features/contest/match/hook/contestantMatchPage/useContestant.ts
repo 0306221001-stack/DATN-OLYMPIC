@@ -31,13 +31,15 @@ import { contestantMatchApi } from "../../service/contestant-match.api";
 export const useGetAll = (
     filter: ContestantQueryInput,
     slug: string | null,
-    options?: { enabled?: boolean }
+    options?: { enabled?: boolean; refetchInterval?: number }
 ) => {
     return useQuery({
         queryKey: ["contestant-contest", filter],
         queryFn: () => GetAll(filter, slug),
         placeholderData: prevData => prevData,
         enabled: options?.enabled !== false,
+        refetchInterval: options?.refetchInterval,
+        refetchOnWindowFocus: true,
     });
 };
 
@@ -184,13 +186,15 @@ export const useGetContestantsInMatch = (
     contestSlug: string,
     matchId: number,
     params: ContestantQueryInput = {},
-    options?: { enabled?: boolean }
+    options?: { enabled?: boolean; refetchInterval?: number }
 ) => {
     return useQuery({
         queryKey: ["contestants-in-match", contestSlug, matchId, params],
         queryFn: () => contestantMatchApi.getContestantsInMatch(contestSlug, matchId, params),
         enabled: options?.enabled !== false && !!contestSlug && !!matchId,
         placeholderData: prevData => prevData,
+        refetchInterval: options?.refetchInterval,
+        refetchOnWindowFocus: true,
     });
 };
 

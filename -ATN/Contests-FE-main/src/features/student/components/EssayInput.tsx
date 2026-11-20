@@ -9,6 +9,7 @@ interface EssayInputProps {
   isBanned: boolean;
   banMessage: string;
   isApiSubmitting: boolean;
+  isTimerRunning?: boolean;
   isRescued: boolean;
   isInRescueMode: boolean;
   onAnswerChange: (answer: string) => void;
@@ -22,6 +23,7 @@ const EssayInput: React.FC<EssayInputProps> = ({
   isEliminated,
   isBanned,
   isApiSubmitting,
+  isTimerRunning = false,
   isRescued,
   isInRescueMode,
   onAnswerChange,
@@ -97,9 +99,9 @@ const EssayInput: React.FC<EssayInputProps> = ({
               variant="contained"
               color="primary"
               onClick={onSubmitAnswer}
-              disabled={isDisabled}
+              disabled={isDisabled || !isTimerRunning}
             >
-              xác nhận
+              {isTimerRunning ? "xác nhận" : "Chờ bắt đầu tính giờ"}
             </Button>
           </Box>
         </>

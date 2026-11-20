@@ -13,6 +13,8 @@ import { registerAwardEvents } from "../events/award.envent";
 import { registerMatchDiagramEvents } from "../events/matchDiagram.event";
 import { registerAudienceEvents } from "../events/audience.events";
 import { registerStatisticsEvents } from "../events/chart.envents";
+import { prisma } from "@/config/database";
+import { contestantsRoom } from "../services/contestantSync";
 
 const extractUserFromSocket = (socket: Socket): JwtPayload | null => {
   try {
@@ -38,6 +40,35 @@ export const registerMatchControlEvents = (io: Server, socket: Socket) => {
   if (user) {
     (socket as any).user = user;
   }
+
+  // Admin đăng ký nhận cập nhật real-time danh sách thí sinh của một cuộc thi
+  socket.on(
+    "contestants:subscribe",
+    async (
+      data: { contestSlug: string },
+      callback?: (response: any) => void
+    ) => {
+      try {
+        if (!user || user.role !== "Admin") {
+          callback?.({ success: false, message: "Không có quyền" });
+          return;
+        }
+        const contest = await prisma.contest.findFirst({
+          where: { slug: data?.contestSlug },
+          select: { id: true },
+        });
+        if (!contest) {
+          callback?.({ success: false, message: "Không tìm thấy cuộc thi" });
+          return;
+        }
+        socket.join(contestantsRoom(contest.id));
+        callback?.({ success: true });
+      } catch (err) {
+        logger.error("contestants:subscribe failed", err);
+        callback?.({ success: false, message: "Lỗi đăng ký" });
+      }
+    }
+  );
 
   // Tham gia phòng của một trận đấu sử dụng matchId (cho match-control truyền thống)
 

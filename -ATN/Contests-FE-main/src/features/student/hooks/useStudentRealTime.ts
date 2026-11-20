@@ -24,6 +24,8 @@ interface CurrentQuestionData {
 interface StudentRealTimeState {
   currentQuestion: CurrentQuestionData | null;
   remainingTime: number;
+  // Admin đã bấm Play và đồng hồ đang chạy: chỉ khi đó thí sinh mới được gửi đáp án
+  isTimerRunning: boolean;
   matchStatus: string;
   isMatchStarted: boolean;
   isEliminated: boolean;
@@ -113,6 +115,7 @@ export const useStudentRealTime = (
   const [realTimeState, setRealTimeState] = useState<StudentRealTimeState>({
     currentQuestion: null,
     remainingTime: 0,
+    isTimerRunning: false,
     matchStatus: "upcoming",
     isMatchStarted: false,
     isEliminated: false,
@@ -193,6 +196,7 @@ export const useStudentRealTime = (
         const newState = {
           currentQuestion: data.currentQuestionData || null,
           remainingTime: data.remainingTime || 0, // 🔥 FIX: Dùng remainingTime từ event
+          isTimerRunning: false, // câu mới: chờ Admin bấm Play
           isMatchStarted: true,
           matchStatus: "ongoing",
         };
@@ -205,7 +209,14 @@ export const useStudentRealTime = (
     const handleTimerUpdated = (data: TimerUpdatedEvent) => {
       updateState({
         remainingTime: data.timeRemaining,
+        isTimerRunning:
+          !!data.isActive && !data.isPaused && data.timeRemaining > 0,
       });
+    };
+
+    // Đồng hồ kết thúc: không còn chạy
+    const handleTimerEnded = () => {
+      updateState({ isTimerRunning: false });
     };
 
     // Event: Timer paused
@@ -227,6 +238,7 @@ export const useStudentRealTime = (
       if (data.matchSlug === matchIdentifier) {
         updateState({
           remainingTime: 0,
+          isTimerRunning: false,
         });
       }
     };
@@ -238,6 +250,7 @@ export const useStudentRealTime = (
           matchStatus: data.status,
           isMatchStarted: false,
           remainingTime: 0,
+          isTimerRunning: false,
         });
 
         // Auto redirect sau 3 giây
@@ -284,6 +297,7 @@ export const useStudentRealTime = (
     socket.on("match:started", handleMatchStarted);
     socket.on("match:questionShown", handleQuestionShown);
     socket.on("timer:update", handleTimerUpdated);
+    socket.on("timer:ended", handleTimerEnded);
     socket.on("match:ended", handleMatchEnded);
     socket.on("match:timerPaused", handleTimerPaused);
     socket.on("match:timerResumed", handleTimerResumed);
@@ -307,6 +321,7 @@ export const useStudentRealTime = (
       socket.off("match:started", handleMatchStarted);
       socket.off("match:questionShown", handleQuestionShown);
       socket.off("timer:update", handleTimerUpdated);
+      socket.off("timer:ended", handleTimerEnded);
       socket.off("match:ended", handleMatchEnded);
       socket.off("match:timerPaused", handleTimerPaused);
       socket.off("match:timerResumed", handleTimerResumed);

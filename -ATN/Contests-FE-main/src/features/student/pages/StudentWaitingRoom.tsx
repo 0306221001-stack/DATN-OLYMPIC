@@ -340,6 +340,7 @@ const StudentWaitingRoom: React.FC = () => {
             <QuestionAnswerRefactored
               currentQuestion={realTimeState.currentQuestion}
               remainingTime={realTimeState.remainingTime}
+              isTimerRunning={realTimeState.isTimerRunning}
               matchId={currentMatch?.id || 0}
               isConnected={isConnected && isRealTimeConnected}
               isBanned={isBanned}

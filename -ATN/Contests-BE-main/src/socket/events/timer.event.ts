@@ -19,6 +19,14 @@ interface MatchTimer {
 
 export const matchTimers = new Map<string, MatchTimer>();
 
+/** Đồng hồ của trận có đang chạy không (Admin đã bấm Play và chưa Pause/hết giờ). */
+export const isMatchTimerRunning = (
+  ...keys: Array<string | number | null | undefined>
+): boolean =>
+  keys.some(
+    k => k != null && matchTimers.get(String(k))?.status === "running"
+  );
+
 // Thời điểm đồng hồ của mỗi trận (theo slug) về 0, dùng để giới hạn thời gian
 // nhận đáp án nộp tự động lúc hết giờ.
 export const timerEndedAt = new Map<string, number>();

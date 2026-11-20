@@ -76,10 +76,14 @@ import {
   type ClassInfo,
   type GroupInfo,
 } from "../service/group-division.service";
+import { useContestantsRealtime } from "../hook/contestantMatchPage/useContestantsRealtime";
 import {
   useGroupDivision,
   useBulkCreateGroups,
 } from "../hook/useGroupDivision";
+
+// Polling dự phòng: chỉ bật khi socket real-time bị mất kết nối
+const CONTESTANT_POLL_MS = 5000;
 
 const ContestantMatchPage: React.FC = () => {
   const [contestant, setcontestant] = useState<Contestant[]>([]);
@@ -210,6 +214,10 @@ const ContestantMatchPage: React.FC = () => {
   // Điều kiện để quyết định sử dụng hook nàoAdd commentMore actions
   const shouldUseMatchFilter = !!(filter.matchId && filter.matchId > 0);
 
+  // Real-time: server báo khi có thí sinh mới/đổi/xóa -> tự tải lại danh sách
+  const { isConnected: isRealtimeConnected } = useContestantsRealtime(slug);
+  const pollInterval = isRealtimeConnected ? undefined : CONTESTANT_POLL_MS;
+
   // Hook để lấy danh sách nhóm hiện tại
   const {
     groups: existingGroups,
@@ -229,7 +237,7 @@ const ContestantMatchPage: React.FC = () => {
   } = useGetAll(
     shouldUseMatchFilter ? {} : { ...filter, matchId: matchId || undefined },
     slug ?? null,
-    { enabled: !shouldUseMatchFilter }
+    { enabled: !shouldUseMatchFilter, refetchInterval: pollInterval }
   );
 
   // Hook để lấy thí sinh theo trận đấu cụ thể (khi có filter theo trận đấu)
@@ -244,7 +252,7 @@ const ContestantMatchPage: React.FC = () => {
     {
       ...filter,
     },
-    { enabled: shouldUseMatchFilter }
+    { enabled: shouldUseMatchFilter, refetchInterval: pollInterval }
   );
 
   // Kết hợp dữ liệu từ 2 hook

@@ -7,6 +7,7 @@ import {
   ContestantById,
 } from "@/modules/contestant";
 import { Contestant } from "@prisma/client";
+import { emitContestantsChanged } from "@/socket/services/contestantSync";
 import { group } from "console";
 
 export default class ContestantService {
@@ -251,11 +252,13 @@ export default class ContestantService {
   }
 
   static async create(data: CreateContestantInput): Promise<Contestant | null> {
-    return prisma.contestant.create({
+    const created = await prisma.contestant.create({
       data: {
         ...data,
       },
     });
+    emitContestantsChanged(created.contestId);
+    return created;
   }
 
   static async update(
@@ -272,12 +275,14 @@ export default class ContestantService {
       updateData.status = data.status;
     }
 
-    return prisma.contestant.update({
+    const updated = await prisma.contestant.update({
       where: { id: id },
       data: {
         ...updateData,
       },
     });
+    emitContestantsChanged(updated.contestId);
+    return updated;
   }
 
   static async deleteContestant(id: number): Promise<Contestant> {
@@ -292,6 +297,7 @@ export default class ContestantService {
       }),
       prisma.contestant.delete({ where: { id } }),
     ]);
+    emitContestantsChanged(contestant.contestId);
     return contestant;
   }
 

@@ -30,6 +30,10 @@ const SubmitAnswerSchema = z.object({
   submittedAt: z.string().datetime().optional(),
 });
 
+const ConfirmStartSchema = z.object({
+  matchId: z.number().int().positive(),
+});
+
 const GetQuestionSchema = z.object({
   matchId: z.number().int().positive(),
   questionOrder: z.number().int().positive(),
@@ -219,11 +223,31 @@ export const registerStudentEvents = (
         where: { id: matchId },
         select: {
           questionPackageId: true,
+          status: true,
+          currentQuestion: true,
         },
       });
 
       if (!match) {
         return callback?.({ success: false, message: "Match not found" });
+      }
+
+      // Chỉ trả nội dung câu admin ĐANG chiếu. Nếu không, thí sinh tự gọi sự kiện
+      // này (client sửa đổi) sẽ đọc được câu hỏi trước khi admin chiếu, kể cả
+      // những câu chưa tới.
+      const screen = await prisma.screenControl.findUnique({
+        where: { matchId },
+        select: { controlKey: true },
+      });
+      if (
+        match.status !== "ongoing" ||
+        match.currentQuestion !== questionOrder ||
+        screen?.controlKey !== "question"
+      ) {
+        return callback?.({
+          success: false,
+          message: "Câu hỏi chưa được chiếu",
+        });
       }
 
       // Get question through questionDetail
@@ -347,27 +371,27 @@ export const registerStudentEvents = (
    */
   socket.on(
     "student:confirmStart",
-    async (data: { contestantId: number; matchId: number }) => {
-      const { contestantId, matchId } = data;
+    async (data: unknown) => {
+      // Chỉ tin thí sinh của CHÍNH socket này (do server xác thực), không tin
+      // contestantId client gửi lên: nếu không, thí sinh này xác nhận thay thí
+      // sinh khác được. Dữ liệu sai (null, undefined...) thì bỏ qua.
+      const parsed = ConfirmStartSchema.safeParse(data);
+      const contestantId = socket.contestantId;
+      const matchId = parsed.success ? parsed.data.matchId : undefined;
 
-      if (!contestantId) {
+      if (!contestantId || !matchId) {
         logger.warn(
-          `[student:confirmStart] Socket ${socket.id} (user: ${socket.user.username}) không có contestantId.`
+          `[student:confirmStart] Socket ${socket.id} (user: ${socket.user.username}) gửi dữ liệu không hợp lệ hoặc không có contestantId.`
         );
         return;
       }
 
       try {
-        await prisma.contestantMatch.update({
-          where: {
-            contestantId_matchId: {
-              contestantId: contestantId,
-              matchId: matchId,
-            },
-          },
-          data: {
-            status: "in_progress",
-          },
+        // Chỉ chuyển not_started -> in_progress. Thí sinh đã bị loại, bị cấm hay
+        // được cứu không thể tự "hồi sinh" bằng sự kiện này.
+        await prisma.contestantMatch.updateMany({
+          where: { contestantId, matchId, status: "not_started" },
+          data: { status: "in_progress" },
         });
       } catch (error) {
         logger.error(

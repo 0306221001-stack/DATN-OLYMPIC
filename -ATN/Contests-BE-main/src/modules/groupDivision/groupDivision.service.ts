@@ -1,4 +1,5 @@
 import { prisma } from "@/config/database";
+import { emitContestantsChangedByMatch } from "@/socket/services/contestantSync";
 import { ContestantStatus, Role } from "@prisma/client";
 import {
   DivideGroupsInput,
@@ -286,6 +287,12 @@ export default class GroupDivisionService {
    * Chia nhóm thí sinh cho trận đấu
    */
   static async divideGroups(matchId: number, input: DivideGroupsInput) {
+    const result = await this.divideGroupsTx(matchId, input);
+    await emitContestantsChangedByMatch(matchId); // báo các trang đang mở cập nhật real-time
+    return result;
+  }
+
+  private static async divideGroupsTx(matchId: number, input: DivideGroupsInput) {
     return await prisma.$transaction(async tx => {
       // 1. Kiểm tra trận đấu có tồn tại không
       const match = await tx.match.findUnique({
@@ -678,6 +685,15 @@ export default class GroupDivisionService {
     matchId: number,
     input: import("./groupDivision.schema").AssignContestantsToGroupsInput
   ) {
+    const result = await this.assignContestantsToGroupsTx(matchId, input);
+    await emitContestantsChangedByMatch(matchId);
+    return result;
+  }
+
+  private static async assignContestantsToGroupsTx(
+    matchId: number,
+    input: import("./groupDivision.schema").AssignContestantsToGroupsInput
+  ) {
     return await prisma.$transaction(async tx => {
       // Xóa contestantMatch cũ của các groupId này
       const groupIds = input.groups.map(g => g.groupId);
@@ -702,6 +718,25 @@ export default class GroupDivisionService {
         }
       }
       return { success: true };
+    });
+  }
+
+  /**
+   * Thí sinh còn đang thi (in_progress) nhưng không gửi đáp án cho câu này
+   * được coi là sai: chuyển sang confirmed2 để bước loại xử lý chung như các
+   * thí sinh bị trọng tài xác nhận sai.
+   */
+  static async markUnansweredAsFailed(
+    matchId: number,
+    answeredContestantIds: number[]
+  ) {
+    return await prisma.contestantMatch.updateMany({
+      where: {
+        matchId,
+        status: "in_progress",
+        contestantId: { notIn: answeredContestantIds },
+      },
+      data: { status: "confirmed2" },
     });
   }
 

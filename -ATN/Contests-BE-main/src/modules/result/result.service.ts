@@ -14,7 +14,7 @@ import {
   SubmitAnswerResponse,
 } from "./result.schema";
 import { prisma } from "@/config/database";
-import { timerEndedAt } from "@/socket/events/timer.event";
+import { timerEndedAt, isMatchTimerRunning } from "@/socket/events/timer.event";
 import { broadcastContestantStatus } from "@/socket/services/contestantStatus";
 
 // Thời gian ân hạn sau khi đồng hồ về 0 cho đáp án app tự nộp lúc hết giờ.
@@ -957,6 +957,18 @@ export class ResultService {
         return {
           success: false,
           message: "Câu hỏi này không còn nhận đáp án",
+        };
+      }
+
+      // Chỉ nhận đáp án khi Admin đã bắt đầu đồng hồ (đang chạy). Chưa Play hoặc
+      // đang Pause thì chưa được gửi. remainingTime = 0 do nhánh "hết giờ" bên dưới xử lý.
+      if (
+        match.remainingTime !== 0 &&
+        !isMatchTimerRunning(match.slug, match.id)
+      ) {
+        return {
+          success: false,
+          message: "Chưa bắt đầu thời gian, bạn chưa thể gửi đáp án",
         };
       }
 

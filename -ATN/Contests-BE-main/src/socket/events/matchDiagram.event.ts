@@ -49,6 +49,16 @@ export const registerMatchDiagramEvents = (io: Server, socket: Socket) => {
         payload.questionOrder
       );
 
+      // Thí sinh không gửi đáp án thì bị loại. Chỉ áp dụng khi câu này có ít nhất
+      // một đáp án nộp qua app: nếu cả trận thi trên giấy (không ai nộp qua app)
+      // thì để trọng tài tự xác nhận như cũ, tránh loại oan tất cả.
+      if (submittedAnswers.size > 0) {
+        await GroupDivisionService.markUnansweredAsFailed(
+          match.id,
+          Array.from(submittedAnswers.keys())
+        );
+      }
+
       const deletedResult = await ResultService.deleted(
         match.id,
         payload.questionOrder

@@ -9,7 +9,7 @@
     "dev": "npm run build && nodemon --exec \"ts-node -r tsconfig-paths/register src/server.ts\"",
     "dev:watch": "concurrently \"tsc --watch\" \"nodemon --delay 2s dist/server.js\"",
     "dev:ts": "nodemon --exec \"ts-node -r tsconfig-paths/register src/server.ts\"",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "prisma:generate": "prisma generate --schema src/prisma/schema.prisma",

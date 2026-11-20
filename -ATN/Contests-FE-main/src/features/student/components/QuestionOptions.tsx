@@ -32,6 +32,7 @@ interface QuestionOptionsProps {
   } | null;
   canShowResult: boolean;
   isApiSubmitting: boolean;
+  isTimerRunning?: boolean;
   isRescued?: boolean; // 🆕 NEW: Prop để check rescue mode
   isInRescueMode?: boolean; // 🆕 NEW: Prop để check rescue mode
   onAnswerSelect: (answer: string) => void;
@@ -47,6 +48,7 @@ const QuestionOptions: React.FC<QuestionOptionsProps> = ({
   answerResult,
   canShowResult,
   isApiSubmitting,
+  isTimerRunning = false,
   isRescued = false, // 🆕 NEW: Default false
   isInRescueMode = false, // 🆕 NEW: Default false
   onAnswerSelect,
@@ -240,10 +242,14 @@ const QuestionOptions: React.FC<QuestionOptionsProps> = ({
               size="large"
               startIcon={<Send />}
               onClick={onSubmitAnswer}
-              disabled={!selectedAnswer || isApiSubmitting}
+              disabled={!selectedAnswer || isApiSubmitting || !isTimerRunning}
               className="px-8 py-3"
             >
-              {isApiSubmitting ? "Đang xử lý..." : "Xác nhận"}
+              {isApiSubmitting
+                ? "Đang xử lý..."
+                : isTimerRunning
+                ? "Xác nhận"
+                : "Chờ bắt đầu tính giờ"}
             </Button>
           </Box>
         )}

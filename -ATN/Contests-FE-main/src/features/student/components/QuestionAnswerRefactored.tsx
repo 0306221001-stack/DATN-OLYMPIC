@@ -59,6 +59,8 @@ interface QuestionAnswerProps {
   isBanned: boolean;
   banMessage: string;
   onContestantBanned: (message: string) => void;
+  // Đồng hồ đang chạy (Admin đã bấm Play) -> mới được gửi đáp án
+  isTimerRunning?: boolean;
   isEliminated: boolean;
   eliminationMessage: string;
   isRescued: boolean;
@@ -75,6 +77,7 @@ interface OtherStudentAnswer {
 const QuestionAnswerRefactored: React.FC<QuestionAnswerProps> = ({
   currentQuestion,
   remainingTime,
+  isTimerRunning = false,
   matchId,
   isBanned,
   banMessage,
@@ -429,6 +432,17 @@ const QuestionAnswerRefactored: React.FC<QuestionAnswerProps> = ({
       return;
     }
 
+    // Chỉ cho gửi khi Admin đã bắt đầu thời gian. Hết giờ (remainingTime = 0) vẫn cho
+    // đáp án tự nộp đi qua; BE tự kiểm tra thời gian ân hạn.
+    if (!isTimerRunning && remainingTime !== 0) {
+      showErrorNotification(
+        "Chưa bắt đầu thời gian, bạn chưa thể gửi đáp án.",
+        "Chưa thể gửi",
+        3000
+      );
+      return;
+    }
+
     const answerToSubmit = currentAnswer || selectedAnswer;
 
     if (!currentQuestion?.question) {
@@ -486,6 +500,8 @@ const QuestionAnswerRefactored: React.FC<QuestionAnswerProps> = ({
           3000
         );
       } else {
+        // Bị từ chối (vd chưa Play) thì mở lại để thí sinh gửi lại; riêng "đã trả lời" thì giữ khóa
+        if (!response.alreadyAnswered) setIsSubmitted(false);
         showErrorNotification(
           `Không thể gửi đáp án: ${response.message}`,
           "Gửi thất bại",
@@ -702,6 +718,7 @@ const QuestionAnswerRefactored: React.FC<QuestionAnswerProps> = ({
                 isApiSubmitting={isApiSubmitting}
                 isRescued={isRescued}
                 isInRescueMode={isInRescueMode}
+                isTimerRunning={isTimerRunning}
                 onAnswerChange={setSelectedAnswer}
                 onSubmitAnswer={() => handleSubmitAnswer()}
               />
@@ -721,6 +738,7 @@ const QuestionAnswerRefactored: React.FC<QuestionAnswerProps> = ({
                 isApiSubmitting={isApiSubmitting}
                 isRescued={isRescued}
                 isInRescueMode={isInRescueMode}
+                isTimerRunning={isTimerRunning}
                 onAnswerSelect={handleAnswerSelect}
                 onSubmitAnswer={() => handleSubmitAnswer()}
               />

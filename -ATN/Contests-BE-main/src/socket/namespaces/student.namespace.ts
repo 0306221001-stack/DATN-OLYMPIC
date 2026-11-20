@@ -183,6 +183,29 @@ export const registerStudentNamespaceEvents = async (
     }
   );
 
+  // Tự vào lại phòng trận khi (nối lại) kết nối, nếu thí sinh thuộc trận đó: khi
+  // rớt mạng, Socket.IO xóa phòng nên client quên vào lại sẽ mất mọi sự kiện.
+  const preMatchId = (socket as AuthenticatedSocket).matchId;
+  if (contestantId && preMatchId) {
+    void (async () => {
+      const assigned = await prisma.contestantMatch.findUnique({
+        where: { contestantId_matchId: { contestantId, matchId: preMatchId } },
+        select: { matchId: true },
+      });
+      if (!assigned) return;
+      const m = await prisma.match.findUnique({
+        where: { id: preMatchId },
+        select: { id: true, slug: true },
+      });
+      if (!m) return;
+      socket.join(
+        m.slug
+          ? [`match-${m.id}`, `match-${m.slug}`, `match-${m.slug}-answers`]
+          : [`match-${m.id}`]
+      );
+    })().catch(error => logger.error("Không tự vào lại phòng trận:", error));
+  }
+
   // Handle disconnect
   socket.on("disconnect", (reason) => {
 
@@ -191,18 +214,27 @@ export const registerStudentNamespaceEvents = async (
       `🔌 Student ${user.username} disconnected from namespace: ${reason}`
     );
 
-    // Notify admin about student disconnect if they were in a match
+    // Báo cho admin (namespace /match-control) biết thí sinh vừa mất kết nối.
+    // Trước đây gửi nhầm vào chính namespace /student nên admin không nhận được.
     const matchId = (socket as AuthenticatedSocket).matchId;
     if (matchId) {
-
-      socket.to(`match-${matchId}`).emit("student:disconnected", {
+      const payload = {
         studentId: user.userId,
         studentName: user.username,
         contestantId: contestantId,
         matchId: matchId,
         reason: reason,
         timestamp: new Date().toISOString(),
-      });
+      };
+      void prisma.match
+        .findUnique({ where: { id: matchId }, select: { slug: true } })
+        .then(m => {
+          const rooms = m?.slug
+            ? [`match-${matchId}`, `match-${m.slug}`]
+            : [`match-${matchId}`];
+          io.of("/match-control").to(rooms).emit("student:disconnected", payload);
+        })
+        .catch(error => logger.error("Không báo được thí sinh mất kết nối:", error));
     }
   });
 
