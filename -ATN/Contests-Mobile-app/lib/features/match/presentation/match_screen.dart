@@ -8,6 +8,13 @@ import 'widgets/answer_input.dart';
 import 'widgets/countdown_ring.dart';
 
 /// Nội dung làm bài: câu hỏi, đồng hồ, ô trả lời và kết quả.
+//man lam bai 11.73
+//chong gian lan 127.168
+//cuu tro 65.68
+//ket qua 327.436
+//nop dap an 269.325
+//dem nguoc 117.121
+//nhap dap an 35.49
 class MatchScreen extends ConsumerWidget {
   const MatchScreen({super.key, required this.matchSlug});
 

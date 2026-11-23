@@ -22,7 +22,7 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
-  static const int _otpLifetimeSeconds = 120;
+  static const int _otpLifetimeSeconds = 300;
 
   final GlobalKey<FormState> _emailFormKey = GlobalKey<FormState>();
   final GlobalKey<FormState> _otpFormKey = GlobalKey<FormState>();

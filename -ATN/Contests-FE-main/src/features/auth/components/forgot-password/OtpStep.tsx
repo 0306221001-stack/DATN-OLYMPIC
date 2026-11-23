@@ -17,7 +17,7 @@ const OtpStep = ({ email, onSubmit, onBack }: OtpStepProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [resending, _setResending] = useState(false);
-  const [countdown, setCountdown] = useState(120);
+  const [countdown, setCountdown] = useState(300);
   const { mutate } = useForgotPassword();
   const { showErrorNotification, showSuccessNotification } = useNotification();
   const sendOtpSubmit = (email: string) => {
@@ -26,7 +26,7 @@ const OtpStep = ({ email, onSubmit, onBack }: OtpStepProps) => {
       {
         onSuccess: () => {
           showSuccessNotification("Mã xác thực đã được gửi");
-          setCountdown(120);
+          setCountdown(300);
         },
         onError: () => {
           showErrorNotification(

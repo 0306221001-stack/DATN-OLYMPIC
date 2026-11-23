@@ -18,15 +18,14 @@ import { errorResponse, successResponse } from "@/utils/response";
 import { verifyToken, generateAccessToken } from "@/utils/jwt";
 import UserService from "../user/user.service";
 import { validateData } from "@/middlewares/validation";
-import { sendOtp } from "@/utils/email";
+import { sendOtp, OTP_TTL_MINUTES } from "@/utils/email";
 import bcrypt from "bcrypt";
 
 import { prisma } from "@/config/database";
 import { ContestStatus } from "@prisma/client";
 import { findCurrentContestantId } from "@/utils/currentContestant";
 
-// Khớp với đồng hồ đếm ngược 120 giây trên app và web.
-const OTP_TTL_MINUTES = 2;
+// Thời hạn OTP (phút) đặt trong src/utils/email.ts (OTP_TTL_MINUTES).
 const OTP_MAX_WRONG_ATTEMPTS = 5;
 // Số lần nhập sai OTP theo email, để chặn dò mã 6 chữ số.
 const otpWrongAttempts = new Map<string, number>();
