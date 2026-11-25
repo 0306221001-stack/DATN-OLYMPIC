@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `screen_controls` MODIFY `controlKey` ENUM('wingold', 'qrcode', 'background', 'question', 'questionIntro', 'questionInfo', 'answer', 'matchDiagram', 'explanation', 'firstPrize', 'secondPrize', 'thirdPrize', 'fourthPrize', 'impressiveVideo', 'excellentVideo', 'allPrize', 'topWin', 'listEliminated', 'listRescued', 'video', 'audio', 'image', 'chart', 'top20Winner') NOT NULL DEFAULT 'background';

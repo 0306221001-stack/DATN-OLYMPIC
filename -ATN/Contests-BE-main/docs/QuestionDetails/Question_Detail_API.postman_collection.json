@@ -1,0 +1,852 @@
+{
+	"info": {
+		"_postman_id": "question-detail-api-collection",
+		"name": "Question Detail API Collection",
+		"description": "Complete test collection for Question Detail API endpoints with CRUD operations, bulk operations, and advanced features",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "questionId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "questionPackageId",
+			"value": "1",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Create Question Detail",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 201', function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test('Response has success true', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.be.true;",
+							"});",
+							"",
+							"pm.test('Response contains question detail data', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data).to.have.property('questionId');",
+							"    pm.expect(jsonData.data).to.have.property('questionPackageId');",
+							"    pm.expect(jsonData.data).to.have.property('questionOrder');",
+							"    pm.expect(jsonData.data).to.have.property('isActive');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"questionId\": {{questionId}},\n  \"questionPackageId\": {{questionPackageId}},\n  \"questionOrder\": 1,\n  \"isActive\": true\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/question-details",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"question-details"
+					]
+				},
+				"description": "Create a new question detail relationship"
+			},
+			"response": []
+		},
+		{
+			"name": "2. Get Question Details (List)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has pagination', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data).to.have.property('pagination');",
+							"    pm.expect(jsonData.data.pagination).to.have.property('currentPage');",
+							"    pm.expect(jsonData.data.pagination).to.have.property('totalPages');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/question-details?page=1&limit=10",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"question-details"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "1"
+						},
+						{
+							"key": "limit",
+							"value": "10"
+						}
+					]
+				},
+				"description": "Get paginated list of question details"
+			},
+			"response": []
+		},
+		{
+			"name": "3. Get Question Detail by ID",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response contains question and package details', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data).to.have.property('question');",
+							"    pm.expect(jsonData.data).to.have.property('questionPackage');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/question-details/{{questionId}}/{{questionPackageId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"question-details",
+						"{{questionId}}",
+						"{{questionPackageId}}"
+					]
+				},
+				"description": "Get specific question detail by composite key"
+			},
+			"response": []
+		},
+		{
+			"name": "4. Update Question Detail",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response indicates successful update', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.be.true;",
+							"    pm.expect(jsonData.message).to.include('Cập nhật');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"questionOrder\": 2,\n  \"isActive\": true\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/question-details/{{questionId}}/{{questionPackageId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"question-details",
+						"{{questionId}}",
+						"{{questionPackageId}}"
+					]
+				},
+				"description": "Update question detail order and active status"
+			},
+			"response": []
+		},
+		{
+			"name": "5. Get Question Details with Filters",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response is filtered correctly', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data).to.have.property('questionDetails');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/question-details?questionPackageId={{questionPackageId}}&isActive=true&page=1&limit=5",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"question-details"
+					],
+					"query": [
+						{
+							"key": "questionPackageId",
+							"value": "{{questionPackageId}}"
+						},
+						{
+							"key": "isActive",
+							"value": "true"
+						},
+						{
+							"key": "page",
+							"value": "1"
+						},
+						{
+							"key": "limit",
+							"value": "5"
+						}
+					]
+				},
+				"description": "Get question details with filters applied"
+			},
+			"response": []
+		},
+		{
+			"name": "6. Bulk Create Question Details",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 201', function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test('Response contains bulk creation summary', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data).to.have.property('summary');",
+							"    pm.expect(jsonData.data.summary).to.have.property('totalRequested');",
+							"    pm.expect(jsonData.data.summary).to.have.property('successful');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"questionDetails\": [\n    {\n      \"questionId\": 2,\n      \"questionPackageId\": {{questionPackageId}},\n      \"questionOrder\": 3,\n      \"isActive\": true\n    },\n    {\n      \"questionId\": 3,\n      \"questionPackageId\": {{questionPackageId}},\n      \"questionOrder\": 4,\n      \"isActive\": true\n    }\n  ]\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/question-details/bulk",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"question-details",
+						"bulk"
+					]
+				},
+				"description": "Create multiple question details in bulk"
+			},
+			"response": []
+		},
+		{
+			"name": "7. Reorder Questions in Package",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response contains reorder summary', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data).to.have.property('summary');",
+							"    pm.expect(jsonData.data).to.have.property('updated');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"questionPackageId\": {{questionPackageId}},\n  \"questionOrders\": [\n    {\n      \"questionId\": {{questionId}},\n      \"questionOrder\": 5\n    },\n    {\n      \"questionId\": 2,\n      \"questionOrder\": 1\n    },\n    {\n      \"questionId\": 3,\n      \"questionOrder\": 2\n    }\n  ]\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/question-details/reorder",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"question-details",
+						"reorder"
+					]
+				},
+				"description": "Reorder questions within a package"
+			},
+			"response": []
+		},
+		{
+			"name": "8. Get Questions by Package",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response contains package info and questions', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data).to.have.property('packageInfo');",
+							"    pm.expect(jsonData.data).to.have.property('questions');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/question-details/package/{{questionPackageId}}?page=1&limit=10&isActive=true",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"question-details",
+						"package",
+						"{{questionPackageId}}"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "1"
+						},
+						{
+							"key": "limit",
+							"value": "10"
+						},
+						{
+							"key": "isActive",
+							"value": "true"
+						}
+					]
+				},
+				"description": "Get all questions in a specific package"
+			},
+			"response": []
+		},
+		{
+			"name": "9. Get Packages by Question",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response contains question info and packages', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data).to.have.property('questionInfo');",
+							"    pm.expect(jsonData.data).to.have.property('packages');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/question-details/question/{{questionId}}?page=1&limit=10",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"question-details",
+						"question",
+						"{{questionId}}"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "1"
+						},
+						{
+							"key": "limit",
+							"value": "10"
+						}
+					]
+				},
+				"description": "Get all packages containing a specific question"
+			},
+			"response": []
+		},
+		{
+			"name": "10. Get Question Detail Statistics",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response contains statistics data', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data).to.have.property('overview');",
+							"    pm.expect(jsonData.data.overview).to.have.property('totalQuestionDetails');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/question-details/stats",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"question-details",
+						"stats"
+					]
+				},
+				"description": "Get comprehensive statistics about question details"
+			},
+			"response": []
+		},
+		{
+			"name": "11. Get Statistics by Package",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response contains filtered statistics', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.data).to.have.property('overview');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/question-details/stats?questionPackageId={{questionPackageId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"question-details",
+						"stats"
+					],
+					"query": [
+						{
+							"key": "questionPackageId",
+							"value": "{{questionPackageId}}"
+						}
+					]
+				},
+				"description": "Get statistics filtered by specific package"
+			},
+			"response": []
+		},
+		{
+			"name": "12. Soft Delete Question Detail",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response indicates soft delete success', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.be.true;",
+							"    pm.expect(jsonData.message).to.include('Xóa mềm');",
+							"    pm.expect(jsonData.data.isActive).to.be.false;",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/question-details/{{questionId}}/{{questionPackageId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"question-details",
+						"{{questionId}}",
+						"{{questionPackageId}}"
+					]
+				},
+				"description": "Soft delete question detail (set isActive to false)"
+			},
+			"response": []
+		},
+		{
+			"name": "13. Hard Delete Question Detail",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response indicates hard delete success', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData.success).to.be.true;",
+							"    pm.expect(jsonData.message).to.include('Xóa cứng');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/question-details/2/{{questionPackageId}}/hard",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"question-details",
+						"2",
+						"{{questionPackageId}}",
+						"hard"
+					]
+				},
+				"description": "Hard delete question detail (permanent removal)"
+			},
+			"response": []
+		},
+		{
+			"name": "Error Scenarios",
+			"item": [
+				{
+					"name": "Create Duplicate Question Detail",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 409', function () {",
+									"    pm.response.to.have.status(409);",
+									"});",
+									"",
+									"pm.test('Response indicates duplicate error', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.false;",
+									"    pm.expect(jsonData.error.code).to.equal('DUPLICATE_ENTRY');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"questionId\": {{questionId}},\n  \"questionPackageId\": {{questionPackageId}},\n  \"questionOrder\": 1,\n  \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/question-details",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"question-details"
+							]
+						},
+						"description": "Try to create duplicate question detail"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Non-existent Question Detail",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"pm.test('Response indicates not found error', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.false;",
+									"    pm.expect(jsonData.error.code).to.equal('RECORD_NOT_FOUND');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/question-details/99999/99999",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"question-details",
+								"99999",
+								"99999"
+							]
+						},
+						"description": "Try to get non-existent question detail"
+					},
+					"response": []
+				},
+				{
+					"name": "Invalid Question ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test('Response indicates validation error', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.false;",
+									"    pm.expect(jsonData.error.code).to.equal('VALIDATION_ERROR');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/question-details/invalid/{{questionPackageId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"question-details",
+								"invalid",
+								"{{questionPackageId}}"
+							]
+						},
+						"description": "Try to get question detail with invalid ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Create with Invalid Data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test('Response indicates validation error', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.false;",
+									"    pm.expect(jsonData.error.type).to.equal('VALIDATION_ERROR');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"questionId\": \"invalid\",\n  \"questionPackageId\": -1,\n  \"questionOrder\": \"not_a_number\",\n  \"isActive\": \"not_boolean\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/question-details",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"question-details"
+							]
+						},
+						"description": "Try to create question detail with invalid data types"
+					},
+					"response": []
+				}
+			],
+			"description": "Test error scenarios and edge cases"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Set dynamic variables if needed",
+					"// pm.collectionVariables.set('timestamp', Date.now());"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global test to check response time",
+					"pm.test('Response time is less than 2000ms', function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(2000);",
+					"});",
+					"",
+					"// Global test to check response format",
+					"pm.test('Response has correct format', function () {",
+					"    const jsonData = pm.response.json();",
+					"    pm.expect(jsonData).to.have.property('success');",
+					"    pm.expect(jsonData).to.have.property('message');",
+					"    pm.expect(jsonData).to.have.property('timestamp');",
+					"});"
+				]
+			}
+		}
+	]
+}
