@@ -11,6 +11,7 @@ import lifesaver from "./images/lifesaver.png";
 import QuestionInfo from "../../components/QuestionDisplay/QuestionInfo";
 import pip from "./sounds/pip.mp3";
 // import Pum from "./sounds/pum1s.mp3";
+import { backupIndex, isBackupQuestion } from "@common/questionOrder";
 
 import {
   type CurrentQuestion,
@@ -193,17 +194,28 @@ const MatchHeader: React.FC<MatchHeaderProps> = ({
             <div className="px-6 py-3 bg-white/20 backdrop-blur-lg rounded-xl shadow-2xl border-2 border-blue-300">
               <div className="font-bold text-white flex items-center space-x-1">
                 <QuestionMarkCircleIcon className="w-8 h-8 text-yellow-400" />
-                <span className="text-3xl font-extrabold">
-                  <span className="text-yellow-400">
-                    {currentQuestion?.questionOrder
-                      ?.toString()
-                      .padStart(2, "0")}
+                {isBackupQuestion(currentQuestion?.questionOrder) ? (
+                  <span className="text-3xl font-extrabold">
+                    <span className="text-orange-300 uppercase">Dự phòng</span>
+                    <span className="text-yellow-400 ml-2">
+                      {backupIndex(currentQuestion!.questionOrder)
+                        .toString()
+                        .padStart(2, "0")}
+                    </span>
                   </span>
-                  <span className="text-blue-200 mx-2">/</span>
-                  <span className="text-blue-100">
-                    {countQuestion?.toString().padStart(2, "0")}
+                ) : (
+                  <span className="text-3xl font-extrabold">
+                    <span className="text-yellow-400">
+                      {currentQuestion?.questionOrder
+                        ?.toString()
+                        .padStart(2, "0")}
+                    </span>
+                    <span className="text-blue-200 mx-2">/</span>
+                    <span className="text-blue-100">
+                      {countQuestion?.toString().padStart(2, "0")}
+                    </span>
                   </span>
-                </span>
+                )}
               </div>
             </div>
           </div>

@@ -23,19 +23,14 @@ class MatchRepository {
   final AuthRepository _authRepository;
 
   /// Tải lại danh sách trận của thí sinh (`GET /auth/profile-student`).
+  /// Trả về danh sách rỗng nếu thí sinh chưa thuộc cuộc thi nào.
   Future<List<MatchSummary>> refreshMatches() {
     return guardApi<List<MatchSummary>>(
       failureMessage: 'Không thể tải danh sách trận đấu.',
       action: () async {
         final AuthUser user = await _authRepository.refreshUser();
         final StudentProfile? profile = user.student;
-        if (profile == null) {
-          throw const ApiException(
-            message: 'Không tìm thấy thông tin thí sinh trong cuộc thi.',
-            code: 'CONTESTANT_NOT_FOUND',
-          );
-        }
-        return profile.matches;
+        return profile?.matches ?? const <MatchSummary>[];
       },
     );
   }

@@ -303,10 +303,11 @@ export const registerMatchDiagramEvents = (io: Server, socket: Socket) => {
       io.of("/student").to(roomBySlug).emit("student:rescued", eventData);
 
       const roomName = `match-${payload.match}`;
-      io.of("/match-control").to(roomName).emit("update:Rescused", {
+      // Màn hình chiếu lắng nghe "update:Rescued" để hiện lại thí sinh được cứu
+      io.of("/match-control").to(roomName).emit("update:Rescued", {
         ListContestant,
         countInProgress,
-        updateScreen,
+        updatedScreen: updateScreen,
       });
       callback(null, {
         message: "Hiển thị thí sinh cứu thành công",

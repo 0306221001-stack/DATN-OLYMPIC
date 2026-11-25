@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/question_label.dart';
 import '../../rescue/presentation/rescue_screen.dart';
 import '../domain/match_models.dart';
 import 'match_controller.dart';
@@ -87,7 +88,7 @@ class _QuestionHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'Câu ${question.order}',
+                questionLabel(question.order),
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),

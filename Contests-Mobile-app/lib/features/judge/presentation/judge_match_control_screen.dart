@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_routes.dart';
+import '../../../core/utils/question_label.dart';
 import '../../../core/widgets/status_views.dart';
 import '../domain/judge_models.dart';
 import 'judge_match_controller.dart';
@@ -191,7 +192,7 @@ class _SummaryCard extends StatelessWidget {
               children: <Widget>[
                 Text(
                   state.currentQuestion > 0
-                      ? 'Câu ${state.currentQuestion}'
+                      ? questionLabel(state.currentQuestion)
                       : 'Chưa có câu hỏi',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,

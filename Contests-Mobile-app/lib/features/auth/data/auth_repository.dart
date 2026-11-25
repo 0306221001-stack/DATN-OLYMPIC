@@ -190,8 +190,16 @@ class AuthRepository {
     }
 
     if (base.role == UserRole.student) {
-      final StudentProfile student = await _api.getStudentProfile();
-      return base.copyWith(student: student);
+      try {
+        final StudentProfile student = await _api.getStudentProfile();
+        return base.copyWith(student: student);
+      } on ApiException catch (error) {
+        // Thí sinh mới đăng ký chưa thuộc cuộc thi nào vẫn được đăng nhập,
+        // `student` để trống. Mọi lỗi khác vẫn chặn như cũ.
+        if (!error.isStudentNotInContest) {
+          rethrow;
+        }
+      }
     }
 
     return base;

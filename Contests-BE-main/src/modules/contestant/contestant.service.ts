@@ -1008,7 +1008,52 @@ export default class ContestantService {
     });
   }
 
-  // Lấy danh sách thí sinh bị loại để cứu trợ, sắp xếp theo số câu đúng và thứ tự bị loại, trả về rescue nếu rescueId có
+  // Tổng điểm của từng thí sinh trong trận = tổng điểm (question.score) các câu trả lời đúng
+  static async getScoreMap(matchId: number, contestantIds: number[]) {
+    const scoreMap = new Map<number, number>();
+    if (contestantIds.length === 0) return scoreMap;
+
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      select: { questionPackageId: true },
+    });
+    if (!match) return scoreMap;
+
+    const details = await prisma.questionDetail.findMany({
+      where: { questionPackageId: match.questionPackageId },
+      select: { questionOrder: true, question: { select: { score: true } } },
+    });
+    const scoreByOrder = new Map<number, number>(
+      details.map(d => [d.questionOrder, d.question.score])
+    );
+
+    const correctResults = await prisma.result.findMany({
+      where: {
+        matchId,
+        contestantId: { in: contestantIds },
+        isCorrect: true,
+      },
+      select: { contestantId: true, questionOrder: true },
+    });
+
+    // Mỗi câu chỉ tính điểm một lần cho một thí sinh
+    const counted = new Set<string>();
+    correctResults.forEach(r => {
+      const key = `${r.contestantId}-${r.questionOrder}`;
+      if (counted.has(key)) return;
+      counted.add(key);
+      scoreMap.set(
+        r.contestantId,
+        (scoreMap.get(r.contestantId) || 0) +
+          (scoreByOrder.get(r.questionOrder) ?? 0)
+      );
+    });
+
+    return scoreMap;
+  }
+
+  // Lấy danh sách thí sinh bị loại để cứu trợ, sắp xếp theo tổng điểm (cao -> thấp),
+  // rồi số câu đúng và thứ tự bị loại, trả về rescue nếu rescueId có
   static async getRescueCandidates(
     matchId: number,
     rescueId?: number,
@@ -1035,6 +1080,8 @@ export default class ContestantService {
       correctAnswersMap.set(r.contestantId, r._count.id);
     });
 
+    const scoreMap = await this.getScoreMap(matchId, contestantIds);
+
     // Kết hợp dữ liệu và sắp xếp
     const candidates = eliminatedContestants.map(e => ({
       contestantId: e.contestantId,
@@ -1047,11 +1094,15 @@ export default class ContestantService {
       roundName: e.contestant.round?.name || "",
       status: e.contestant.status,
       correctAnswers: correctAnswersMap.get(e.contestantId) || 0,
+      totalScore: scoreMap.get(e.contestantId) || 0,
       eliminatedAtQuestionOrder: e.eliminatedAtQuestionOrder,
       registrationNumber: e.registrationNumber,
     }));
 
     candidates.sort((a, b) => {
+      if (b.totalScore !== a.totalScore) {
+        return b.totalScore - a.totalScore;
+      }
       if (b.correctAnswers !== a.correctAnswers) {
         return b.correctAnswers - a.correctAnswers;
       }
@@ -1349,6 +1400,7 @@ export default class ContestantService {
     });
     const correctAnswersMap = new Map<number, number>();
     results.forEach(r => correctAnswersMap.set(r.contestantId, r._count.id));
+    const scoreMap = await this.getScoreMap(rescue.matchId, studentIds);
     // Kết hợp dữ liệu
     const contestants = contestantMatches.map(e => ({
       contestantId: e.contestantId,
@@ -1361,9 +1413,15 @@ export default class ContestantService {
       roundName: e.contestant.round?.name || "",
       status: e.contestant.status,
       correctAnswers: correctAnswersMap.get(e.contestantId) || 0,
+      totalScore: scoreMap.get(e.contestantId) || 0,
       eliminatedAtQuestionOrder: e.eliminatedAtQuestionOrder,
       registrationNumber: e.registrationNumber,
     }));
+    // Điểm cao xếp trước để ban tổ chức dễ đối chiếu với thứ tự đề xuất
+    contestants.sort((a, b) => {
+      if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+      return b.correctAnswers - a.correctAnswers;
+    });
     return { rescue, contestants };
   }
 

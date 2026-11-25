@@ -88,13 +88,16 @@ class StudentDashboardController
   Future<void> load() async {
     _set(state.copyWith(isLoading: true, clearError: true));
     try {
-      final StudentProfile? profile =
+      StudentProfile? profile =
           ref.read(authSessionControllerProvider).user?.student;
       if (profile == null) {
-        throw const ApiException(
-          message: 'Không tìm thấy thông tin thí sinh trong cuộc thi.',
-          code: 'CONTESTANT_NOT_FOUND',
-        );
+        // Có thể ban tổ chức vừa thêm thí sinh vào cuộc thi: hỏi lại máy chủ.
+        await _repository.refreshMatches();
+        profile = ref.read(authSessionControllerProvider).user?.student;
+      }
+      if (profile == null) {
+        _set(state.copyWith(isLoading: false));
+        return;
       }
       _contestantId = profile.contestant.id;
       _set(state.copyWith(
@@ -121,6 +124,11 @@ class StudentDashboardController
 
   /// Kéo để làm mới.
   Future<void> refresh() async {
+    if (_contestantId == null) {
+      // Chưa có cuộc thi: tải lại từ đầu để lấy tên, trận và nối socket.
+      await load();
+      return;
+    }
     try {
       final List<MatchSummary> matches = await _repository.refreshMatches();
       _set(state.copyWith(matches: matches, clearError: true));

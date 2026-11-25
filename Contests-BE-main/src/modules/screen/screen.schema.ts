@@ -26,7 +26,7 @@ export const ScreensIdShema = z.object({
 
 export const UpdateScreenSchema = z.object({
   controlKey: z.nativeEnum(ControlKey).optional(),
-  controlValue: z.nativeEnum(ControlValue).optional(),
+  controlValue: z.nativeEnum(ControlValue).nullable().optional(),
   matchId: z.number().optional(),
   media: z.string().optional(),
   value: z.string().optional(),

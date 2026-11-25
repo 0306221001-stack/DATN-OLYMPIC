@@ -9,6 +9,7 @@ import {
   SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { type CurrentQuestion } from "../../types/control.type.ts";
+import { questionLabel } from "@common/questionOrder";
 
 // Define the shape of questionData
 interface QuestionData {
@@ -44,7 +45,7 @@ const Intro: React.FC<QuestionData> = ({ currentQuestion }) => {
               className="text-5xl font-bold text-white mb-2 tracking-wider animate-slideUpFade"
               style={{ animationDelay: "0.2s" }}
             >
-              CÂU HỎI {currentQuestion?.questionOrder}
+              {questionLabel(currentQuestion?.questionOrder).toUpperCase()}
             </h1>
             <div
               className="h-1 w-32 bg-gradient-to-r from-blue-400 to-purple-500 mx-auto animate-growWidth"

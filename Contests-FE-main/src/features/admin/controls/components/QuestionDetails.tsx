@@ -4,6 +4,11 @@ import { useSocket } from "../../../../contexts/SocketContext";
 import { useParams } from "react-router-dom";
 
 import { useToast } from "@contexts/toastContext";
+import {
+  MAIN_QUESTION_COUNT,
+  backupIndex,
+  isBackupQuestion,
+} from "@common/questionOrder";
 interface QuestionDetailsProp {
   questions: Question[];
   currentQuestion?: number;
@@ -56,6 +61,13 @@ const QuestionDetails: React.FC<QuestionDetailsProp> = ({
       }
     );
   };
+  const mainQuestions = questions.filter(
+    q => !isBackupQuestion(q.questionOrder)
+  );
+  const backupQuestions = questions.filter(q =>
+    isBackupQuestion(q.questionOrder)
+  );
+
   return (
     <div className="w-1/5 bg-gradient-to-b from-blue-600 to-blue-800 text-white p-4 shadow-lg flex flex-col h-screen">
       <h2 className="text-2xl font-bold mb-2 tracking-tight text-center bg-blue-900 rounded-lg py-1">
@@ -64,7 +76,7 @@ const QuestionDetails: React.FC<QuestionDetailsProp> = ({
 
       <div className="flex-grow overflow-hidden">
         <ul className="flex flex-col h-full gap-[0.35rem]">
-          {questions.map((q) => {
+          {mainQuestions.map((q) => {
             const isCurrent = q.questionOrder === currentQuestion;
             const difficulty = difficultyMap[
               q.difficulty as keyof typeof difficultyMap
@@ -92,7 +104,9 @@ const QuestionDetails: React.FC<QuestionDetailsProp> = ({
                 style={{
                   flex: "1 1 0",
                   minHeight: 0,
-                  maxHeight: "calc((100vh - 100px) / 13)",
+                  maxHeight: `calc((100vh - ${
+                    backupQuestions.length > 0 ? 190 : 100
+                  }px) / ${MAIN_QUESTION_COUNT})`,
                 }}
               >
                 {isCurrent && (
@@ -133,6 +147,46 @@ const QuestionDetails: React.FC<QuestionDetailsProp> = ({
           })}
         </ul>
       </div>
+
+      {/* Câu dự phòng: dùng khi đã hết 13 câu chính mà vẫn cần thêm câu */}
+      {backupQuestions.length > 0 && (
+        <div className="mt-3 flex-shrink-0">
+          <h3 className="text-sm font-bold tracking-wide text-center bg-orange-600 rounded-lg py-1 mb-2">
+            CÂU DỰ PHÒNG ({backupQuestions.length})
+          </h3>
+          <div className="grid grid-cols-4 gap-1.5">
+            {backupQuestions.map(q => {
+              const isCurrent = q.questionOrder === currentQuestion;
+              const difficulty = difficultyMap[
+                q.difficulty as keyof typeof difficultyMap
+              ] || { color: "bg-gray-600", label: "?" };
+
+              return (
+                <button
+                  key={q.id}
+                  type="button"
+                  onClick={() => EmitGetCurrentQuestion(match, q.questionOrder)}
+                  title={`Câu dự phòng ${backupIndex(q.questionOrder)} (thứ tự ${q.questionOrder} trong gói)`}
+                  className={`rounded-md py-1 flex flex-col items-center shadow-md transition-all duration-200 ${
+                    isCurrent
+                      ? "bg-orange-500 border-2 border-red-500"
+                      : "bg-orange-400/80 hover:bg-orange-500 border border-orange-300"
+                  }`}
+                >
+                  <span className="text-lg font-bold leading-none">
+                    DP{backupIndex(q.questionOrder)}
+                  </span>
+                  <span
+                    className={`mt-0.5 text-[10px] font-semibold px-1 rounded ${difficulty.color}`}
+                  >
+                    {difficulty.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

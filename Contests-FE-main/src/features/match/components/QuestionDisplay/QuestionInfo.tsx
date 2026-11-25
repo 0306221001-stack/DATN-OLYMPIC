@@ -7,6 +7,7 @@ import {
   PhotoIcon,
 } from "@heroicons/react/24/outline";
 import { type QuestionInfoProps } from "../../types/question.types";
+import { questionLabel } from "@common/questionOrder";
 
 const QuestionInfo: React.FC<QuestionInfoProps> = ({
   questionNumber,
@@ -29,7 +30,7 @@ const QuestionInfo: React.FC<QuestionInfoProps> = ({
     <div className="flex flex-wrap gap-2 my-4 justify-center text-lg">
       <div className="px-4 py-2 bg-gray-200 rounded-full font-semibold">
         <QuestionMarkCircleIcon className="w-5 h-5 inline-block mr-2" />
-        Câu {questionNumber}
+        {questionLabel(questionNumber)}
       </div>
       <div className="px-4 py-2 bg-blue-600 text-white rounded-full font-semibold">
         {phase}

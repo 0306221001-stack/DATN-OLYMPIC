@@ -5,8 +5,10 @@ import { User, Role } from "@prisma/client";
 import {
   generateAccessToken,
   generateRefreshToken,
+  verifyToken,
   JwtPayload,
 } from "@/utils/jwt";
+import { SessionPresence } from "@/utils/sessionPresence";
 import { StudentRegisterInput } from "./auth.schema";
 import StudentService from "../student/student.service";
 import UserService from "../user/user.service";
@@ -65,6 +67,24 @@ export default class AuthService {
       where: { userId: id },
     });
   }
+  /**
+   * Tài khoản đang được dùng trên thiết bị khác hay không (chỉ Thí sinh và
+   * Trọng tài). Token trong DB đã bị xóa (đăng xuất) hoặc hết hạn thì coi như
+   * không còn phiên nào.
+   */
+  static isLoggedInOnAnotherDevice(user: User, deviceId?: string): boolean {
+    if (!SessionPresence.appliesTo(user.role)) return false;
+    if (!user.token) return false;
+
+    try {
+      verifyToken(user.token);
+    } catch {
+      return false;
+    }
+
+    return SessionPresence.isActiveOnOtherDevice(user.id, deviceId ?? null);
+  }
+
   static async isOtpExpired(OtpExpired?: Date): Promise<Boolean> {
     if (!OtpExpired) return true;
     return new Date() > OtpExpired;

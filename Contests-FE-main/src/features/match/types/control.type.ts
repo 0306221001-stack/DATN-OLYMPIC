@@ -74,7 +74,8 @@ export const controlValue = {
   reset: "reset",
   zoomin: "zoomin",
   zoomout: "zoomout",
-  Eliminate: "Eliminate",
+  // Backend đặt "Eliminated" khi admin bấm "Hiển thị thí sinh bị loại"
+  Eliminated: "Eliminated",
   Rescued: "Rescued",
 } as const;
 

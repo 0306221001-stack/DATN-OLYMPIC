@@ -23,6 +23,20 @@ import bcrypt from "bcrypt";
 
 import { prisma } from "@/config/database";
 import { ContestStatus } from "@prisma/client";
+import {
+  SessionPresence,
+  ACCOUNT_IN_USE_CODE,
+  ACCOUNT_IN_USE_MESSAGE,
+} from "@/utils/sessionPresence";
+
+/** Phản hồi khi thiết bị thứ hai cố đăng nhập vào tài khoản đang được dùng. */
+const accountInUseResponse = () => ({
+  success: false,
+  message: ACCOUNT_IN_USE_MESSAGE,
+  error: "Account already logged in on another device",
+  code: ACCOUNT_IN_USE_CODE,
+  timestamp: new Date().toISOString(),
+});
 
 export default class AuthController {
   static async register(req: Request, res: Response): Promise<void> {
@@ -123,6 +137,15 @@ export default class AuthController {
       if (!isPassword) {
         throw new Error("Tài khoản hoặc mật khẩu không chính xác");
       }
+
+      if (AuthService.isLoggedInOnAnotherDevice(user, input.deviceId)) {
+        logger.warn(
+          `Từ chối đăng nhập ${input.identifier}: tài khoản đang dùng trên thiết bị khác`
+        );
+        res.status(409).json(accountInUseResponse());
+        return;
+      }
+
       const tokenData = {
         userId: user.id,
         username: user.username,
@@ -146,6 +169,7 @@ export default class AuthController {
       if (!deleterefreshToken) throw new Error("Đăng nhập thất bại");
       await UserService.UpdateUser(user.id, { token: accessToken });
       await AuthService.CreateRefreshToken(refreshTokenInput);
+      SessionPresence.bindDevice(user.id, input.deviceId ?? null);
       res.cookie("accessToken", accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -203,6 +227,14 @@ export default class AuthController {
         return;
       }
 
+      if (AuthService.isLoggedInOnAnotherDevice(user, input.deviceId)) {
+        logger.warn(
+          `Từ chối đăng nhập thí sinh ${input.identifier}: tài khoản đang dùng trên thiết bị khác`
+        );
+        res.status(409).json(accountInUseResponse());
+        return;
+      }
+
       const tokenData = {
         userId: user.id,
         username: user.username,
@@ -226,6 +258,7 @@ export default class AuthController {
         userId: user.id,
         refreshToken: refreshToken,
       });
+      SessionPresence.bindDevice(user.id, input.deviceId ?? null);
 
       // Set cookies
       res.cookie("accessToken", accessToken, {
@@ -305,11 +338,11 @@ export default class AuthController {
         include: { contest: true },
       });
       if (!contestant) {
-        res
-          .status(400)
-          .json(
-            errorResponse("Không tìm thấy thông tin thí sinh trong cuộc thi")
-          );
+        res.status(400).json({
+          ...errorResponse("Không tìm thấy thông tin thí sinh trong cuộc thi"),
+          // App di động dựa vào mã này để vẫn cho đăng nhập khi chưa có cuộc thi
+          code: "STUDENT_NOT_IN_CONTEST",
+        });
         return;
       }
 
@@ -428,6 +461,7 @@ export default class AuthController {
       const userId: number = req.user.userId!;
       await UserService.UpdateUser(userId, { token: "" });
       await AuthService.deleteRefreshToken(userId);
+      SessionPresence.clear(userId);
       res.clearCookie("accessToken", {
         httpOnly: true,
         sameSite: "lax",

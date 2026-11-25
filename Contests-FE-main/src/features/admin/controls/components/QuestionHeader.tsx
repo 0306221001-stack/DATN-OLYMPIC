@@ -1,4 +1,5 @@
 import React from "react";
+import { isBackupQuestion, questionLabel } from "@common/questionOrder";
 
 interface QuestionHeaderProps {
   questionOrder?: number;
@@ -29,7 +30,15 @@ const QuestionHeader: React.FC<QuestionHeaderProps> = ({
         </h1>
         <div className="text-lg text-gray-600">
           <span className="font-medium">
-            Câu {questionOrder ?? "-"} / {totalQuestions ?? "-"}
+            {isBackupQuestion(questionOrder) ? (
+              <span className="text-orange-600">
+                {questionLabel(questionOrder)} (câu dự phòng)
+              </span>
+            ) : (
+              <>
+                Câu {questionOrder ?? "-"} / {totalQuestions ?? "-"}
+              </>
+            )}
           </span>{" "}
           |{" "}
           <span className="text-red-500 font-semibold">

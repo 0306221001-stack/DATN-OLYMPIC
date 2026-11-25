@@ -9,6 +9,7 @@ import { registerUpdateStatusByJudgeEvents } from "../events/Judge/updateStatus.
 import { registerMatchEvents } from "../events/match.events";
 import { verifyToken, JwtPayload } from "@/utils/jwt";
 import cookie from "cookie";
+import { trackSocketSession } from "@/utils/sessionPresence";
 import { registerAwardEvents } from "../events/award.envent";
 import { registerMatchDiagramEvents } from "../events/matchDiagram.event";
 import { registerAudienceEvents } from "../events/audience.events";
@@ -37,6 +38,8 @@ export const registerMatchControlEvents = (io: Server, socket: Socket) => {
   // 🔥 NEW: Thêm logic authentication cho online control
   if (user) {
     (socket as any).user = user;
+    // Trọng tài: socket còn kết nối = tài khoản đang được dùng trên thiết bị này
+    void trackSocketSession(socket, user.userId, user.role);
   }
 
   // Tham gia phòng của một trận đấu sử dụng matchId (cho match-control truyền thống)

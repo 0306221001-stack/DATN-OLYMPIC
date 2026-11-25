@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_guard.dart';
+import '../../../core/storage/device_identity.dart';
 import '../domain/auth_user.dart';
 
 /// Kết quả của `POST /auth/login` và `POST /auth/student-login`.
@@ -35,9 +36,10 @@ class LoginResponse {
 ///
 /// Mọi phương thức ném `ApiException` với thông điệp tiếng Việt khi thất bại.
 class AuthApi {
-  AuthApi(this._client);
+  AuthApi(this._client, this._deviceIdentity);
 
   final ApiClient _client;
+  final DeviceIdentity _deviceIdentity;
 
   static const String _loginPath = '/auth/login';
   static const String _studentLoginPath = '/auth/student-login';
@@ -114,11 +116,15 @@ class AuthApi {
     return guardApi<LoginResponse>(
       failureMessage: 'Đăng nhập thất bại. Vui lòng thử lại.',
       action: () async {
+        // Backend dùng mã thiết bị để từ chối thiết bị thứ hai khi tài khoản
+        // đang được dùng ở nơi khác (lỗi `ACCOUNT_ALREADY_LOGGED_IN`).
+        final String deviceId = await _deviceIdentity.read();
         final ApiResult result = await _client.post(
           path,
           data: <String, dynamic>{
             'identifier': identifier,
             'password': password,
+            'deviceId': deviceId,
           },
           // Đăng nhập là endpoint công khai: không gắn cookie cũ và không
           // kích hoạt auto refresh khi sai mật khẩu.
@@ -132,5 +138,8 @@ class AuthApi {
 
 /// Provider `AuthApi`.
 final Provider<AuthApi> authApiProvider = Provider<AuthApi>(
-  (ref) => AuthApi(ref.watch(apiClientProvider)),
+  (ref) => AuthApi(
+    ref.watch(apiClientProvider),
+    ref.watch(deviceIdentityProvider),
+  ),
 );

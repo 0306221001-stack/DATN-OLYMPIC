@@ -18,7 +18,7 @@ Flutter/Dart, flutter_riverpod 2.x (provider viết tay, không codegen), go_rou
 - Chạy web: `flutter run -d chrome --web-port=5000`, dùng `localhost` (không `127.0.0.1`); `CORS_ORIGIN` của BE phải chứa `http://localhost:5000`.
 - Refresh: `GET /api/auth/refresh-token` (cookie `refreshToken`). 401 `USER_NOT_FOUND_OR_INACTIVE` = tài khoản bị khóa; `INVALID_OR_EXPIRED_TOKEN` = đăng nhập nơi khác.
 - Lỗi validate: `error.details: [{field, message}]`. Envelope thành công: `{success, message, data, timestamp}`.
-- Thí sinh đăng nhập được nhưng báo "Không tìm thấy thông tin thí sinh trong cuộc thi" nếu chưa có trong bảng contestants – hành vi của BE, không phải lỗi app.
+- Thí sinh chưa có trong bảng contestants: BE trả 400 `STUDENT_NOT_IN_CONTEST` ở `profile-student`; app vẫn cho đăng nhập (`AuthUser.student == null`) và trang chủ báo chưa được thêm vào cuộc thi.
 - Dữ liệu thử: `student_10104 / 123456`, `judge1 / 123456`. Gửi OTP cần SMTP của BE.
 - Tài liệu `docs/API_Anwser.md`, `docs/PLAN_REALTIME_ANSWERS.md` của BE đã lỗi thời; tin vào code (`src/socket`, `src/modules`) và FE web.
 
@@ -50,3 +50,8 @@ Flutter/Dart, flutter_riverpod 2.x (provider viết tay, không codegen), go_rou
 - `/account/profile` (`ProfileScreen`): th� sinh c� 3 th? H? so / Gi?i thu?ng / Nh� t�i tr?; tr?ng t�i ch? c� H? so. API c�ng khai: `GET /api/awards/contest/:slug` v� `GET /api/sponsors/contest/:slug` (tr? `{awards|sponsors, pagination}`). ?nh l� du?ng d?n tuong d?i `/uploads/...` n�n gh�p v?i `Env.serverUrl` (`resolveMediaUrl`).
 - V�o m�n h? so b?ng bi?u tu?ng t�i kho?n ? thanh tr�n c?a danh s�ch tr?n (th� sinh) v� danh s�ch cu?c thi (tr?ng t�i).
 
+
+## Một tài khoản một thiết bị
+- Đăng nhập gửi kèm `deviceId` (`DeviceIdentity`, sinh ngẫu nhiên, giữ qua đăng xuất). BE (`src/utils/sessionPresence.ts`) từ chối thiết bị thứ hai bằng 409 `ACCOUNT_ALREADY_LOGGED_IN` khi tài khoản Thí sinh/Trọng tài còn socket kết nối hoặc hoạt động trong 2 phút gần nhất; cùng thiết bị đăng nhập lại luôn được phép. Admin không bị giới hạn.
+- `LoginScreen` hiện hộp thoại "Đã có thiết bị khác đăng nhập" khi gặp lỗi này (`ApiException.isAccountInUse`).
+- Câu hỏi thứ tự > 13 là câu dự phòng: hiển thị "Câu dự phòng N" (`core/utils/question_label.dart`).

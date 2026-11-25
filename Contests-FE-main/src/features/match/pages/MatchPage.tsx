@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import MatchHeader from "../components/MatchHeader/MatchHeader";
 import Background from "../components/QuestionDisplay/Background";
 import FullScreenImage from "../components/Media/FullScreenImage";
@@ -10,8 +10,9 @@ import QRCodeDisplay from "../components/QuestionDisplay/QRCodeDisplay";
 import RescueStatsDisplay from "../components/QuestionDisplay/RescueStatsDisplays";
 import ChartDisplay from "../components/QuestionDisplay/ChartDisplay";
 import Info from "../components/QuestionDisplay/Info";
-
-import { mockContestants } from "../constants";
+import MatchStatsDashboard from "../components/Statistics/MatchStatsDashboard";
+import { useMatchResults } from "../hooks/useMatchResults";
+import { countMainQuestions } from "@common/questionOrder";
 
 import { Box, CircularProgress } from "@mui/material";
 import {
@@ -253,6 +254,8 @@ export default function MatchPage() {
         return {
           ...prev,
           controlKey: "questionInfo",
+          // Câu mới: chưa công bố kết quả
+          controlValue: null,
         };
       });
     };
@@ -293,7 +296,7 @@ export default function MatchPage() {
         ...prev!,
         countIn_progress: data?.countInProgress ?? 0,
       }));
-      setScreenControl(data?.updateScreen);
+      setScreenControl(data?.updatedScreen ?? data?.updateScreen);
     };
 
     const handleShowQrRescue = (data: any) => {
@@ -347,15 +350,32 @@ export default function MatchPage() {
       socket.off("update:winGold", handleUpdateGold);
       // socket.off("contestant:status-update", handleUpdateStatus);
       socket.off("update:Eliminated", handleUpdateEliminate);
-      socket.off("update:Rescused", handleUpdateRescued);
+      socket.off("update:Rescued", handleUpdateRescued);
       socket.off("showQrRescue", handleShowQrRescue);
       socket.off("showQrChart", handleShowQrChart);
       socket.off("statistics:update", handleStatistics);
-      socket.off("update:Rescued", handleUpdateRescued);
       socket.off("statisticsContestant:update", handleStatisticsContestant);
       socket.off("update:award", handleUpdateAward);
     };
   }, [socket]);
+
+  // Kết quả câu hiện tại chỉ được coi là đã công bố sau khi admin bấm
+  // "Hiển thị thí sinh bị loại" (hoặc đã hiển thị thí sinh được cứu).
+  const currentQuestionOrder = currentQuestion?.questionOrder ?? 0;
+  const resultRevealed =
+    screenControl?.controlValue === "Eliminated" ||
+    screenControl?.controlValue === "Rescued";
+  const matchResults = useMatchResults(
+    listContestant ?? [],
+    currentQuestionOrder,
+    resultRevealed
+  );
+  // Tổng số câu hiển thị "x/13" chỉ tính câu chính, không tính câu dự phòng
+  const mainQuestionCount = countMainQuestions(
+    listQuestion.map(q => q.questionOrder)
+  );
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
+  const toggleStats = useCallback(() => setIsStatsOpen(prev => !prev), []);
 
   const isLoading =
     isLoadingMatch ||
@@ -412,6 +432,12 @@ export default function MatchPage() {
 
   return (
     <>
+      <MatchStatsDashboard
+        results={matchResults}
+        open={isStatsOpen}
+        onToggle={toggleStats}
+      />
+
       {screenControl?.controlKey === "allPrize" && (
         <div key="allPrize">
           <TopThreeBoard ListAward={listAward} />
@@ -456,7 +482,7 @@ export default function MatchPage() {
             countContestant={countContestant}
             remainingTime={matchInfo?.remainingTime}
             currentQuestion={currentQuestion}
-            countQuestion={listQuestion.length}
+            countQuestion={mainQuestionCount}
             updateRescuedData={updateRescuedData}
           />
           <QuestionContent
@@ -474,7 +500,7 @@ export default function MatchPage() {
             countContestant={countContestant}
             remainingTime={matchInfo?.remainingTime}
             currentQuestion={currentQuestion}
-            countQuestion={listQuestion.length}
+            countQuestion={mainQuestionCount}
           />
           <QuestionContent
             content={currentQuestion?.content}
@@ -491,7 +517,7 @@ export default function MatchPage() {
             countContestant={countContestant}
             remainingTime={matchInfo?.remainingTime}
             currentQuestion={currentQuestion}
-            countQuestion={listQuestion.length}
+            countQuestion={mainQuestionCount}
             updateRescuedData={updateRescuedData}
           />
           <AnswerContent
@@ -507,14 +533,15 @@ export default function MatchPage() {
             countContestant={countContestant}
             remainingTime={matchInfo?.remainingTime}
             currentQuestion={currentQuestion}
-            countQuestion={listQuestion.length}
+            countQuestion={mainQuestionCount}
             updateRescuedData={updateRescuedData}
           />
           <EliminateDisplay
             ListContestant={listContestant ?? []}
-            currentQuestionOrder={currentQuestion?.questionOrder ?? 0}
-            totalIcons={mockContestants.length}
-            controlValue={screenControl?.controlValue ?? undefined}
+            results={matchResults}
+            currentQuestionOrder={currentQuestionOrder}
+            currentQuestion={currentQuestion}
+            revealed={resultRevealed}
           />
         </div>
       )}
@@ -527,7 +554,7 @@ export default function MatchPage() {
             countContestant={countContestant}
             remainingTime={matchInfo?.remainingTime}
             currentQuestion={currentQuestion}
-            countQuestion={listQuestion.length}
+            countQuestion={mainQuestionCount}
             updateRescuedData={updateRescuedData}
           />
           <QuestionExplanation
@@ -562,7 +589,7 @@ export default function MatchPage() {
             countContestant={countContestant}
             remainingTime={matchInfo?.remainingTime}
             currentQuestion={currentQuestion}
-            countQuestion={listQuestion.length}
+            countQuestion={mainQuestionCount}
             updateRescuedData={updateRescuedData}
           />
           <QuestionIntro

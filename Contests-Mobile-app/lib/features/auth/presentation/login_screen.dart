@@ -122,6 +122,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
+    if (error.isAccountInUse) {
+      setState(() {
+        _fieldErrors = <String, String>{};
+        _errorMessage = error.message;
+      });
+      _showAccountInUseDialog(error.message);
+      return;
+    }
+
     // Lỗi theo từng trường hiển thị ngay dưới ô nhập tương ứng.
     final Map<String, String> fieldErrors = <String, String>{};
     for (final String field in <String>['identifier', 'password']) {
@@ -136,6 +145,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // Chỉ hiện banner khi lỗi không gắn được vào ô nhập nào.
       _errorMessage = fieldErrors.isEmpty ? error.message : null;
     });
+  }
+
+  /// Cảnh báo thiết bị đăng nhập sau: tài khoản đang được dùng ở máy khác.
+  Future<void> _showAccountInUseDialog(String message) {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          icon: Icon(
+            Icons.phonelink_lock_outlined,
+            color: Theme.of(dialogContext).colorScheme.error,
+            size: 40,
+          ),
+          title: const Text('Đã có thiết bị khác đăng nhập'),
+          content: Text(
+            '$message\n\nMỗi tài khoản chỉ được dùng trên một thiết bị trong '
+            'lúc thi. Nếu bạn vừa đóng app ở máy cũ, hãy đợi khoảng 2 phút rồi '
+            'thử lại.',
+          ),
+          actions: <Widget>[
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Đã hiểu'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _clearFieldError(String field) {

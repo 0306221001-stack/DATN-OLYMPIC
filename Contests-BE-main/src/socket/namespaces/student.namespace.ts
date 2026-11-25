@@ -4,6 +4,7 @@ import { verifyToken, JwtPayload } from "@/utils/jwt";
 import { registerStudentEvents } from "../events/student.events";
 import { prisma } from "@/config/database";
 import cookie from "cookie";
+import { trackSocketSession } from "@/utils/sessionPresence";
 
 // Interface cho authenticated socket
 interface AuthenticatedSocket extends Socket {
@@ -109,6 +110,9 @@ export const registerStudentNamespaceEvents = async (
   // Gán user và contestant vào socket
   (socket as AuthenticatedSocket).user = user;
   (socket as AuthenticatedSocket).contestantId = contestantId;
+
+  // Socket còn kết nối = tài khoản đang được dùng trên thiết bị này
+  void trackSocketSession(socket, user.userId, user.role);
 
 
 

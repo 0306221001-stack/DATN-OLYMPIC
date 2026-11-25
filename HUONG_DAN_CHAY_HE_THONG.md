@@ -72,6 +72,8 @@ Mở `http://localhost:5173/login`.
 | Thí sinh | `student_10104` | `123456` | App (đã có trong trận 2) |
 | Trọng tài | `judge2` | `123456` | App (phụ trách nhóm có thí sinh `student_10104` ở trận 2) |
 
+**Lưu ý:** với database có trận `tran-dau-1` (cuộc thi `olympic`), trọng tài dùng `judge1` (phụ trách nhóm có `student_10104`); `judge2` không phụ trách nhóm nào trong trận này.
+
 Dữ liệu mẫu còn nhiều tài khoản thí sinh dạng `student_10101`, `student_10102`, … (mật khẩu theo cùng quy ước của dữ liệu mẫu là `123456`); phần đã được thử đầy đủ là `student_10104`.
 
 ## 5. Kịch bản thử một trận (khoảng 5 phút)

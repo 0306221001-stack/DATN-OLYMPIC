@@ -65,4 +65,6 @@ Hệ thống chỉ cho **một phiên đăng nhập cho mỗi tài khoản**: ha
 ## 5. Tài khoản thử
 
 Mật khẩu `123456` (thử thật với `student_10104`). Thí sinh trận "Vòng loại - Trận 1": `student_10104`, `student_11905`, `student_12303`, `student_12105`, `student_10602`. Trọng tài: `judge1` (Nhóm A), `judge2` (Nhóm D). Admin: `admin` / `admin123`.
+**Lưu ý:** với database có trận `tran-dau-1` (cuộc thi `olympic`), trọng tài dùng `judge1` (phụ trách nhóm có `student_10104`); `judge2` không phụ trách nhóm nào trong trận này.
+
 Mỗi tài khoản chỉ đăng nhập một nơi một lúc, mỗi người dùng một tài khoản riêng.

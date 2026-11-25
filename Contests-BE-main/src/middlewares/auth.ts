@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { verifyToken, extractTokenFromHeader, JwtPayload } from "@/utils/jwt";
 import { errorResponse } from "@/utils/response";
 import UserService from "@/modules/user/user.service";
+import { SessionPresence } from "@/utils/sessionPresence";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -67,6 +68,9 @@ export const authenticate = async (
       });
       return;
     }
+
+    // Ghi nhận thiết bị đang giữ phiên vẫn hoạt động (chặn thiết bị thứ hai)
+    SessionPresence.touch(user.id);
 
     // Base user info
     const userInfo: Express.User = {

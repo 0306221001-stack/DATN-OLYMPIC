@@ -94,10 +94,13 @@ class StudentDashboardScreen extends ConsumerWidget {
           ],
           const SizedBox(height: 16),
           if (state.matches.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 48),
+            Padding(
+              padding: const EdgeInsets.only(top: 48),
               child: EmptyView(
-                message: 'Cuộc thi chưa có trận đấu nào.',
+                message: state.contestName.isEmpty
+                    ? 'Bạn chưa được thêm vào cuộc thi nào.\n'
+                        'Kéo xuống để tải lại sau khi ban tổ chức thêm bạn.'
+                    : 'Cuộc thi chưa có trận đấu nào.',
                 icon: Icons.sports_esports_outlined,
               ),
             )

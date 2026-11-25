@@ -45,6 +45,7 @@ import {
 import { useSocket } from "@contexts/SocketContext";
 import { Box, CircularProgress } from "@mui/material";
 import AwardControl from "../components/AwardControl";
+import { countMainQuestions } from "@common/questionOrder";
 
 // Define types for socket responses
 
@@ -568,7 +569,9 @@ const ControlsPage: React.FC = () => {
           <QuestionHeader
             questionOrder={matchInfo?.currentQuestion}
             timeRemaining={matchInfo?.remainingTime}
-            totalQuestions={listQuestion.length}
+            totalQuestions={countMainQuestions(
+              listQuestion.map(q => q.questionOrder)
+            )}
             totalTime={currentQuestion?.defaultTime}
             matchNumber={matchInfo?.name}
           />
@@ -776,7 +779,9 @@ const ControlsPage: React.FC = () => {
           >
             <AudienceRescueControl
               currentQuestionOrder={currentQuestion?.questionOrder}
-              totalQuestions={listQuestion.length}
+              totalQuestions={countMainQuestions(
+                listQuestion.map(q => q.questionOrder)
+              )}
               controlKey={screenControl?.controlKey || null}
               ListRescueLifelineUsed={listRescueLifelineUsed || []}
               matchId={matchInfo?.id || null}

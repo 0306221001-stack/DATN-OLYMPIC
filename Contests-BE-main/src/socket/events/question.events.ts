@@ -64,8 +64,11 @@ export const registerQuestionEvents = (io: Server, socket: Socket) => {
       });
     }
 
+    // Câu mới chưa công bố kết quả: xóa trạng thái "Eliminated/Rescued" của câu
+    // trước để màn hình chiếu không lộ thí sinh bị loại trước khi admin bấm.
     await ScreenService.update(screen.id, {
       controlKey: "question",
+      controlValue: null,
     });
 
     await GroupDivisionService.UpdateContestantStatusByIds(matchInfo.id);

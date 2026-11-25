@@ -6,6 +6,7 @@ import { type ControlKey } from "../../../match/types/control.type";
 import { useSocket } from "@/contexts/SocketContext";
 import { useToast } from "@contexts/toastContext";
 import type { ListRescueLifelineUsed } from "../type/control.type";
+import { isBackupQuestion, questionLabel } from "@common/questionOrder";
 
 interface AudienceRescueControlProps {
   ListRescueLifelineUsed: ListRescueLifelineUsed[] | [];
@@ -72,7 +73,9 @@ const AudienceRescueControl: React.FC<AudienceRescueControlProps> = ({
     const displayNumber = currentQuestionOrder;
     const total = totalQuestions;
 
-    if (displayNumber && total) {
+    if (displayNumber && isBackupQuestion(displayNumber)) {
+      return questionLabel(displayNumber);
+    } else if (displayNumber && total) {
       return `Câu ${displayNumber} / ${total}`;
     } else if (displayNumber) {
       return `Câu ${displayNumber}`;

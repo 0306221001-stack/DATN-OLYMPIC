@@ -51,6 +51,12 @@ class ApiException implements Exception {
 
   bool get isUnauthorized => statusCode == 401;
 
+  /// Đăng nhập bị từ chối vì tài khoản đang được dùng trên thiết bị khác.
+  bool get isAccountInUse => code == 'ACCOUNT_ALREADY_LOGGED_IN';
+
+  /// Tài khoản thí sinh hợp lệ nhưng chưa được thêm vào cuộc thi nào.
+  bool get isStudentNotInContest => code == 'STUDENT_NOT_IN_CONTEST';
+
   @override
   String toString() =>
       'ApiException(status: $statusCode, code: $code, message: $message)';

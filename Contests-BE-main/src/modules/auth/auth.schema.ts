@@ -38,6 +38,9 @@ export const CreateRefreshTokenShchema = z.object({
 });
 
 export const LoginSchema = z.object({
+  // Mã định danh thiết bị do app tự sinh, dùng để cho phép cùng thiết bị
+  // đăng nhập lại trong khi chặn thiết bị thứ hai.
+  deviceId: z.string().max(128).optional(),
   identifier: z
     .string({
       required_error: "Vui lòng nhập tên đăng nhập hoặc email",

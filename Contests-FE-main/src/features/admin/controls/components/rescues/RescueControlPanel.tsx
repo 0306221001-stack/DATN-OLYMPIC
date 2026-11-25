@@ -54,6 +54,8 @@ type RescuedContestant = {
     studentCode: string;
     schoolName: string;
     correctAnswers: number;
+    // Tổng điểm các câu trả lời đúng; Backend đã sắp xếp cao -> thấp
+    totalScore?: number;
     eliminatedAtQuestionOrder: number | null;
     registrationNumber?: string;
 };
@@ -246,12 +248,16 @@ const RescueControlPanel: React.FC<RescueControlPanelProps> = ({ matchId, curren
             // const response = await fetch(`/api/contestant/rescue-candidates/${matchId}?rescueId=${selectedRescueId}&limit=${suggestCount}`);
             return response.data;
         },
-        onSuccess: () => {
+        onSuccess: (response) => {
             queryClient.invalidateQueries({
                 queryKey: ['rescuedContestants'],
                 exact: false
             });
             setIsLoadingSuggest(false);
+            const picked = response?.candidates?.length ?? 0;
+            setStatusMessage(picked > 0
+                ? { type: 'success', text: `Đã đề xuất ${picked} thí sinh có điểm cao nhất` }
+                : { type: 'info', text: 'Không có thí sinh bị loại nào để đề xuất' });
         },
         onError: (error) => {
             setIsLoadingSuggest(false);
@@ -446,6 +452,9 @@ const RescueControlPanel: React.FC<RescueControlPanelProps> = ({ matchId, curren
                         >
                             Đề xuất tự động
                         </Button>
+                        <Typography variant="caption" color="text.secondary">
+                            Chọn thí sinh bị loại có tổng điểm từ cao đến thấp; bằng điểm thì ưu tiên nhiều câu đúng hơn, rồi người bị loại muộn hơn.
+                        </Typography>
                         <Button
                             variant="outlined"
                             startIcon={<AddIcon />}
@@ -573,7 +582,7 @@ const RescueControlPanel: React.FC<RescueControlPanelProps> = ({ matchId, curren
                                                     }
                                                     secondary={
                                                         <Typography variant="caption" color="text.secondary">
-                                                            Số câu đúng: {c.correctAnswers} | Bị loại ở câu: {c.eliminatedAtQuestionOrder || 'N/A'}
+                                                            Điểm: <b>{c.totalScore ?? 0}</b> | Số câu đúng: {c.correctAnswers} | Bị loại ở câu: {c.eliminatedAtQuestionOrder || 'N/A'}
                                                         </Typography>
                                                     }
                                                 />
